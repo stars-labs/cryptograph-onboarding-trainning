@@ -28,14 +28,14 @@ const config = {
   themes: ['@docusaurus/theme-mermaid'],
 
   // Set the production url of your site here
-  url: 'https://hecoinfo.github.io',
+  url: 'https://stars-labs.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/cryptograph-onboarding-trainning/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'hecoinfo', // Usually your GitHub org/user name.
+  organizationName: 'stars-labs', // Usually your GitHub org/user name.
   projectName: 'cryptograph-onboarding-trainning', // Usually your repo name.
 
   onBrokenLinks: 'throw',
@@ -109,7 +109,7 @@ const config = {
             label: '课程',
           },
           {
-            href: 'https://github.com/hecoinfo/cryptograph-onboarding-trainning',
+            href: 'https://github.com/stars-labs/cryptograph-onboarding-trainning',
             label: 'GitHub',
             position: 'right',
           },
@@ -149,7 +149,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} HecoInfo. 内部培训材料.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Stars-Labs. 内部培训材料.`,
       },
       prism: {
         theme: prismThemes.github,
