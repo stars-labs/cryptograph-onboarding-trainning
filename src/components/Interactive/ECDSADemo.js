@@ -65,6 +65,20 @@ function scalarMult(k, P, a, p) {
   return result;
 }
 
+function scalarMultSequence(k, P, a, p) {
+  const steps = [];
+  let acc = null;
+  for (let i = 1; i <= k; i++) {
+    acc = pointAdd(acc, P, a, p);
+    if (acc) {
+      steps.push({ i, x: acc.x, y: acc.y });
+    } else {
+      steps.push({ i, x: '∞', y: '∞' });
+    }
+  }
+  return steps;
+}
+
 function findCurvePoints(a, b, p) {
   const points = [];
   for (let x = 0; x < p; x++) {
@@ -279,6 +293,11 @@ export default function ECDSADemo() {
   const [verifyMsg, setVerifyMsg] = useState('Hello');
   const [verifySig, setVerifySig] = useState({ r: 0, s: 0 });
   const [verificationResult, setVerificationResult] = useState(null); // {w, u1, u2, P, valid}
+  const keygenSteps = useMemo(() => scalarMultSequence(d, CURVE.G, CURVE.a, CURVE.p), [d]);
+  const signSteps = useMemo(
+    () => (signature ? scalarMultSequence(signature.k_used, CURVE.G, CURVE.a, CURVE.p) : []),
+    [signature]
+  );
 
   // Auto-generate Q when d changes
   useEffect(() => {
@@ -294,11 +313,11 @@ export default function ECDSADemo() {
   
   const signMessage = () => {
     // 1. Hash
-    let z = 0;
+    let hashSum = 0;
     for (let i = 0; i < message.length; i++) {
-      z += message.charCodeAt(i);
+      hashSum += message.charCodeAt(i);
     }
-    z = z % CURVE.n; // Simple hash
+    const z = hashSum % CURVE.n; // Simple hash
     
     // 2. k (use current k state)
     
@@ -310,9 +329,11 @@ export default function ECDSADemo() {
     
     // 5. s = k^-1 (z + r*d) mod n
     const kInv = modInverse(k, CURVE.n);
-    const s = mod(kInv * (z + r * d), CURVE.n);
+    const sum = z + r * d;
+    const product = kInv * sum;
+    const s = mod(product, CURVE.n);
     
-    setSignature({ r, s, R, z, k_used: k });
+    setSignature({ r, s, R, z, k_used: k, hashSum, kInv, sum, product });
     
     // Pre-fill verify tab
     setVerifyMsg(message);
@@ -325,18 +346,20 @@ export default function ECDSADemo() {
     if (!r || !s) return;
     
     // 1. z
-    let z = 0;
+    let hashSum = 0;
     for (let i = 0; i < verifyMsg.length; i++) {
-      z += verifyMsg.charCodeAt(i);
+      hashSum += verifyMsg.charCodeAt(i);
     }
-    z = z % CURVE.n;
+    const z = hashSum % CURVE.n;
     
     // 2. w = s^-1
     const w = modInverse(s, CURVE.n);
     
     // 3. u1 = z*w, u2 = r*w
-    const u1 = mod(z * w, CURVE.n);
-    const u2 = mod(r * w, CURVE.n);
+    const u1Raw = z * w;
+    const u2Raw = r * w;
+    const u1 = mod(u1Raw, CURVE.n);
+    const u2 = mod(u2Raw, CURVE.n);
     
     // 4. P = u1*G + u2*Q
     const P1 = scalarMult(u1, CURVE.G, CURVE.a, CURVE.p);
@@ -345,7 +368,7 @@ export default function ECDSADemo() {
     
     const valid = P && mod(P.x, CURVE.n) === parseInt(r);
     
-    setVerificationResult({ z, w, u1, u2, P1, P2, P, valid });
+    setVerificationResult({ hashSum, z, w, u1Raw, u2Raw, u1, u2, P1, P2, P, valid });
   };
 
   return (
@@ -404,6 +427,19 @@ export default function ECDSADemo() {
                 G = ({CURVE.G.x}, {CURVE.G.y})<br/>
                 Q = {d} × G = ({Q?.x}, {Q?.y})
               </div>
+              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '6px'}}>
+                注：点乘是“重复点加法”，不是坐标相乘
+              </div>
+              <details style={{marginTop: '10px', fontSize: '12px', color: '#cbd5f5'}}>
+                <summary style={{cursor: 'pointer'}}>展开点乘过程（逐次相加）</summary>
+                <div style={{marginTop: '6px', lineHeight: '1.7', color: '#e2e8f0'}}>
+                  {keygenSteps.map(step => (
+                    <div key={step.i}>
+                      {step.i}G = ({step.x}, {step.y})
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
             <div style={styles.col}>
               <CurveVisualizer 
@@ -446,16 +482,29 @@ export default function ECDSADemo() {
               {signature && (
                 <div style={styles.stepCalc}>
                   <strong>Step 1: 哈希</strong><br/>
-                  z = hash("{message}") % {CURVE.n} = {signature.z}<br/>
+                  hash("{message}") = 字符编码求和 = {signature.hashSum}<br/>
+                  z = {signature.hashSum} % {CURVE.n} = {signature.z}<br/>
                   <br/>
                   <strong>Step 2: 计算 R = kG</strong><br/>
                   R = {signature.k_used} × G = ({signature.R.x}, {signature.R.y})<br/>
+                  <details style={{marginTop: '6px', fontSize: '12px', color: '#cbd5f5'}}>
+                    <summary style={{cursor: 'pointer'}}>展开 k×G 的逐次相加过程</summary>
+                    <div style={{marginTop: '6px', lineHeight: '1.7', color: '#e2e8f0'}}>
+                      {signSteps.map(step => (
+                        <div key={step.i}>
+                          {step.i}G = ({step.x}, {step.y})
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                   <br/>
                   <strong>Step 3: 计算 r, s</strong><br/>
                   r = R.x % n = {signature.R.x} % {CURVE.n} = <span style={{color:'#ff9800', fontWeight:'bold'}}>{signature.r}</span><br/>
-                  s = k⁻¹(z + r·d) % n<br/>
-                  &nbsp;&nbsp;= {modInverse(signature.k_used, CURVE.n)}({signature.z} + {signature.r}·{d}) % {CURVE.n}<br/>
-                  &nbsp;&nbsp;= <span style={{color:'#e91e63', fontWeight:'bold'}}>{signature.s}</span>
+                  <br/>
+                  k⁻¹ = {signature.k_used}⁻¹ mod {CURVE.n} = {signature.kInv}<br/>
+                  z + r·d = {signature.z} + {signature.r}·{d} = {signature.sum}<br/>
+                  k⁻¹ × (z + r·d) = {signature.kInv} × {signature.sum} = {signature.product}<br/>
+                  s = {signature.product} % {CURVE.n} = <span style={{color:'#e91e63', fontWeight:'bold'}}>{signature.s}</span>
                 </div>
               )}
             </div>
@@ -512,10 +561,14 @@ export default function ECDSADemo() {
               {verificationResult && (
                 <div style={styles.stepCalc}>
                   <strong>计算过程:</strong><br/>
-                  z = {verificationResult.z}<br/>
-                  w = s⁻¹ = {verifySig.s}⁻¹ = {verificationResult.w}<br/>
-                  u₁ = z·w = {verificationResult.u1}<br/>
-                  u₂ = r·w = {verificationResult.u2}<br/>
+                  hash("{verifyMsg}") = 字符编码求和 = {verificationResult.hashSum}<br/>
+                  z = {verificationResult.hashSum} % {CURVE.n} = {verificationResult.z}<br/>
+                  <br/>
+                  w = s⁻¹ = {verifySig.s}⁻¹ mod {CURVE.n} = {verificationResult.w}<br/>
+                  u₁ = z·w = {verificationResult.z} × {verificationResult.w} = {verificationResult.u1Raw}<br/>
+                  u₁ = {verificationResult.u1Raw} % {CURVE.n} = {verificationResult.u1}<br/>
+                  u₂ = r·w = {verifySig.r} × {verificationResult.w} = {verificationResult.u2Raw}<br/>
+                  u₂ = {verificationResult.u2Raw} % {CURVE.n} = {verificationResult.u2}<br/>
                   <br/>
                   <strong>恢复点 P:</strong><br/>
                   P = u₁G + u₂Q<br/>

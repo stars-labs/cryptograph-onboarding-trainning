@@ -414,8 +414,10 @@ export default function EdDSADemo() {
               </div>
               <div style={styles.stepCalc}>
                 EdDSA 使用 Twisted Edwards 曲线。<br/>
-                密钥生成类似于 Schnorr，但标量 s 是从私钥哈希确定的。<br/>
-                A = {privKey} × B = ({A?.x}, {A?.y})
+                B 是固定的基点（大家公认的起点）。<br/>
+                私钥哈希得到标量 s，这里用简化的 s = {privKey} 代替。<br/>
+                公钥就是把基点“重复相加 s 次”：<br/>
+                A = s × B = {privKey} × B = ({A?.x}, {A?.y})
               </div>
             </div>
             <div style={styles.col}>
@@ -455,6 +457,7 @@ export default function EdDSADemo() {
                   <br/>
                   <strong>Step 3: 计算挑战 k</strong><br/>
                   k = Hash(R || A || m) % L = {signature.k}<br/>
+                  其中 “||” 表示把数据拼接在一起（R 接着 A 接着 m）<br/>
                   <br/>
                   <strong>Step 4: 计算 S</strong><br/>
                   S = (r + k × s) % L<br/>

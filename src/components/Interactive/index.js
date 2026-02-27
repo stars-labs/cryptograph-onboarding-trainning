@@ -1,6 +1,7 @@
 export { default as MerkleTreeBuilder } from './MerkleTreeBuilder';
 export { default as ZKProofDemo } from './ZKProofDemo';
 export { default as BLSDemo } from './BLSDemo';
+export { default as PairingDemo } from './PairingDemo';
 export { default as RSADemo } from './RSADemo';
 export { default as SHA256Demo } from './SHA256Demo';
 export { default as ModularArithmeticDemo } from './ModularArithmeticDemo';

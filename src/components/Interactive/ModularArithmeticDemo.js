@@ -262,7 +262,7 @@ function ClockDemo() {
     };
   };
   
-  const handAngle = (result - 3) * 30;
+  const handAngle = (result % 12) * 30;
   
   return (
     <div>
@@ -553,6 +553,8 @@ function ModInverseDemo() {
 
   
   const { result: inverse, steps } = useMemo(() => modInverse(a, n), [a, n]);
+  const gcdValue = gcd(a, n);
+  const bezoutY = inverse !== null ? (1 - a * inverse) / n : null;
   
   return (
     <div>
@@ -583,7 +585,7 @@ function ModInverseDemo() {
         <div style={styles.resultValue}>
           {inverse !== null
             ? `${a}⁻¹ mod ${n} = ${inverse}`
-            : `不存在 (gcd(${a}, ${n}) = ${gcd(a, n)} ≠ 1)`}
+            : `不存在 (gcd(${a}, ${n}) = ${gcdValue} ≠ 1)`}
         </div>
       </div>
       
@@ -626,6 +628,25 @@ function ModInverseDemo() {
                   <div style={{color: '#aaa', fontSize: '12px'}}>
                     这就是贝祖等式！扩展欧几里得算法可以求出 x 和 y
                   </div>
+                  
+                  <div style={{color: '#90caf9', fontWeight: 'bold', marginTop: '16px', marginBottom: '8px'}}>
+                    ➜ 等价推导（从模方程到“可整除”）
+                  </div>
+                  <div style={{color: '#ddd', fontSize: '12px', lineHeight: '1.8'}}>
+                    1) {a} × x ≡ 1 (mod {n})<br/>
+                    2) ⟺ {a} × x - 1 可以被 {n} 整除<br/>
+                    3) ⟺ {a} × x - 1 = {n} × y<br/>
+                    4) ⟺ {a} × x + {n} × y = 1<br/>
+                    5) 所以 {n} × y ≡ 0 (mod {n})
+                  </div>
+                  
+                  {bezoutY !== null && Number.isFinite(bezoutY) && (
+                    <div style={{marginTop: '8px', color: '#ddd', fontSize: '12px'}}>
+                      代入当前数值：x = {inverse}，y = {bezoutY}
+                      <br/>
+                      {a} × {inverse} + {n} × {bezoutY} = 1 ✓
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{
@@ -728,6 +749,28 @@ function ModInverseDemo() {
         </>
       )}
       
+      {inverse === null && (
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          borderRadius: '6px',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          fontSize: '13px',
+          lineHeight: '1.8',
+          color: '#fecaca',
+        }}>
+          ❗ <strong>为什么 gcd ≠ 1 就没有逆元？</strong><br/>
+          如果 gcd({a}, {n}) = {gcdValue}，那么 {a} × x + {n} × y 的所有结果都会是 {gcdValue} 的倍数。
+          <br/>
+          但 1 不是 {gcdValue} 的倍数，所以方程
+          <br/>
+          {a} × x + {n} × y = 1
+          <br/>
+          不可能成立，逆元就不存在。
+        </div>
+      )}
+
       <div style={styles.infoBox}>
         💡 <strong>模逆元</strong>: 找一个数 b，使得 a × b ≡ 1 (mod n)。只有当 gcd(a, n) = 1 时才存在。
         <br/><br/>
