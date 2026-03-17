@@ -10,3 +10,4 @@ export { default as ECDSADemo } from './ECDSADemo';
 export { default as SchnorrDemo } from './SchnorrDemo';
 export { default as EdDSADemo } from './EdDSADemo';
 export { default as CryptoAppsDemo } from './CryptoAppsDemo';
+export { default as R1CSDemo } from './R1CSDemo';
