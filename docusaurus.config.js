@@ -12,8 +12,8 @@ import rehypeKatex from 'rehype-katex';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: '密码学培训',
-  tagline: '从零理解 ECDSA 与区块链签名',
+  title: 'Cryptography Training',
+  tagline: 'Understanding ECDSA and Blockchain Signatures from Scratch',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -40,10 +40,18 @@ const config = {
 
   onBrokenLinks: 'throw',
 
-  // Chinese locale configuration
+  // i18n configuration
   i18n: {
-    defaultLocale: 'zh-Hans',
-    locales: ['zh-Hans'],
+    defaultLocale: 'en',
+    locales: ['en', 'zh-Hans'],
+    localeConfigs: {
+      en: {
+        label: 'English',
+      },
+      'zh-Hans': {
+        label: '中文',
+      },
+    },
   },
   
   // Enable math equations support
@@ -96,7 +104,7 @@ const config = {
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: '密码学培训',
+        title: 'Cryptography Training',
         logo: {
           alt: 'Crypto Training Logo',
           src: 'img/logo.svg',
@@ -106,7 +114,11 @@ const config = {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: '课程',
+            label: 'Course',
+          },
+          {
+            type: 'localeDropdown',
+            position: 'right',
           },
           {
             href: 'https://github.com/stars-labs/cryptograph-onboarding-trainning',
@@ -119,24 +131,24 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: '课程',
+            title: 'Course',
             items: [
               {
-                label: '密码学基础',
+                label: 'Cryptography Basics',
                 to: '/docs/cryptography/basics',
               },
               {
-                label: '椭圆曲线',
+                label: 'Elliptic Curves',
                 to: '/docs/cryptography/elliptic-curves',
               },
               {
-                label: 'ECDSA 签名',
+                label: 'ECDSA Signatures',
                 to: '/docs/cryptography/ecdsa',
               },
             ],
           },
           {
-            title: '参考资料',
+            title: 'References',
             items: [
               {
                 label: 'Bitcoin Wiki',
@@ -149,7 +161,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Stars-Labs. 内部培训材料.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Stars-Labs. Internal training materials.`,
       },
       prism: {
         theme: prismThemes.github,

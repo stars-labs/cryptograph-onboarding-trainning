@@ -1,0 +1,18 @@
+{
+  "title": {
+    "message": "Cryptography Training",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Crypto Training Logo",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Course": {
+    "message": "Course",
+    "description": "Navbar item with label Course"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  }
+}

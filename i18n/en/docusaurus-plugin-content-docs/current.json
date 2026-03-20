@@ -1,0 +1,30 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.密码学基础": {
+    "message": "密码学基础",
+    "description": "The label for category '密码学基础' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.密码学基础.link.generated-index.description": {
+    "message": "从零开始理解 ECDSA 椭圆曲线数字签名算法，循序渐进掌握加密货币核心技术",
+    "description": "The generated-index page description for category '密码学基础' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.零知识证明深入": {
+    "message": "零知识证明深入",
+    "description": "The label for category '零知识证明深入' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.零知识证明深入.link.generated-index.description": {
+    "message": "从算术电路到零知识证明的完整流水线：电路 → R1CS → QAP → 证明生成与验证",
+    "description": "The generated-index page description for category '零知识证明深入' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.毕业项目": {
+    "message": "毕业项目",
+    "description": "The label for category '毕业项目' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.毕业项目.link.generated-index.description": {
+    "message": "综合运用密码学知识，完成实战项目",
+    "description": "The generated-index page description for category '毕业项目' in sidebar 'tutorialSidebar'"
+  }
+}

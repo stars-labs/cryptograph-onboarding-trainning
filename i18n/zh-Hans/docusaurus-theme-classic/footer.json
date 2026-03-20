@@ -1,0 +1,20 @@
+{
+  "link.title.course": {
+    "message": "课程"
+  },
+  "link.item.label.cryptography-basics": {
+    "message": "密码学基础"
+  },
+  "link.item.label.elliptic-curves": {
+    "message": "椭圆曲线"
+  },
+  "link.item.label.ecdsa-signatures": {
+    "message": "ECDSA 签名"
+  },
+  "link.title.references": {
+    "message": "参考资料"
+  },
+  "copyright": {
+    "message": "Copyright © ${year} Stars-Labs. 内部培训材料。"
+  }
+}
