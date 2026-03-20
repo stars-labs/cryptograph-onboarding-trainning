@@ -1,86 +1,199 @@
 ---
 sidebar_position: 2
-title: "R1CS 约束系统"
+title: "R1CS Constraint System"
 ---
 
 import { R1CSDemo, R1CSMatrixDemo } from '@site/src/components/Interactive';
 
-# 10.2 R1CS（Rank-1 Constraint System）
+# 10.2 R1CS (Rank-1 Constraint System)
 
-## 交互式演示
+## 为什么要搞这些矩阵？
+
+在上一章，我们学会了把任何计算"拍平"成算术电路——只有**加法门**和**乘法门**。
+
+但问题来了：**验证者怎么检查这个电路是正确的？**
+
+### 问题的本质
+
+假设证明者说："我知道一个秘密 $x$，使得 $x^3 + x + 5 = 35$"
+
+验证者需要确认：
+1. 这个计算确实被执行了
+2. 每一步都是对的
+3. 但**不看到** $x$ 是多少（零知识！）
+
+### 为什么不能直接验证电路？
+
+电路是个图形结构——有门、有连线。直接验证很麻烦：
+- 需要检查每个门的连接
+- 门的数量可能成千上万
+- 不容易用数学公式表达
+
+### 解决方案：把电路变成矩阵
+
+R1CS 的核心思想是：**把电路的所有约束，编码成三个矩阵 A、B、C**
+
+这样做的好处：
+- ✅ **标准化**：任何电路都能用同样的格式表示
+- ✅ **批量验证**：用矩阵乘法一次性检查所有约束
+- ✅ **数学友好**：可以进一步转换成多项式（下一章）
+
+:::info 类比
+想象你要检查一个工厂的生产流程：
+- **电路方式**：逐一检查每台机器的每个零件
+- **R1CS方式**：把流程写成检查清单（矩阵），批量核对
+:::
+
+## Interactive Demo
 
 <R1CSDemo />
 
-## 从电路到约束
+## 从方程到矩阵：完整流程
 
-R1CS 用矩阵形式表达电路的约束。对于每个约束，格式为：
+R1CS converts arithmetic circuits into a matrix form. Each constraint becomes one row in three matrices (A, B, C), and they all share the same **witness vector** $\vec{s}$.
+
+### The Core Equation
+
+Each constraint must satisfy:
 
 $$
 (\vec{a} \cdot \vec{s}) \times (\vec{b} \cdot \vec{s}) = (\vec{c} \cdot \vec{s})
 $$
 
-其中：
-- $\vec{s}$ 是 **witness 向量**，包含所有变量的值
-- $\vec{a}, \vec{b}, \vec{c}$ 是系数向量，定义了这个约束的结构
-- $\cdot$ 表示向量点积
+:::info What does this mean?
+Think of it as: **"left operand" × "right operand" = "result"**
 
-## 构造 witness 向量
-
-对于 $x^3 + x + 5 = y$，我们的 witness 向量包含：
-
-$$
-\vec{s} = [1, \; x, \; y, \; \text{sym}_1, \; \text{sym}_2]
-$$
-
-第一个元素固定为 1，用于引入常数项。
-
-:::tip 以 x = 3 为例
-$$
-\vec{s} = [1, \; 3, \; 35, \; 9, \; 27]
-$$
-
-因为：$\text{sym}_1 = 3^2 = 9$，$\text{sym}_2 = 9 \times 3 = 27$，$y = 27 + 3 + 5 = 35$
+- **A matrix** defines the **left operand** of each multiplication
+- **B matrix** defines the **right operand** of each multiplication  
+- **C matrix** defines the **result** of each multiplication
+- **$\vec{s}$ (witness)** contains all variable values
+- **$\cdot$ (dot product)** means: multiply corresponding elements and sum them up
 :::
 
-## 手算 R1CS 矩阵
+## 第一步：理解 Witness 向量
 
-试试自己动手构造 R1CS 矩阵：
+**问题：** 如何让验证者知道 $x^3 + x + 5 = 35$ 成立？
+
+**答案：** 把所有变量排成一个向量，叫 **Witness（见证）向量）**：
+
+| 位置 | 变量 | 含义 | x=3 时的值 |
+|------|------|------|-----------|
+| 0 | **1** | 常数项（永远是1） | 1 |
+| 1 | **x** | 你的秘密输入 | 3 |
+| 2 | **y** | 最终输出结果 | 35 |
+| 3 | **sym₁** | 中间变量：$x^2$ | 9 |
+| 4 | **sym₂** | 中间变量：$x^3$ | 27 |
+
+$$
+\vec{s} = [1, \; x, \; y, \; \text{sym}_1, \; \text{sym}_2] = [1, \; 3, \; 35, \; 9, \; 27]
+$$
+
+:::info 为什么要有 "1" 这一列？
+R1CS 只能做乘法，不能直接加常数。但如果我们把常数 5 乘以 1，就得到了 5！
+
+所以 "1" 列的作用是：**让矩阵能表达常数项**
+:::
+
+## 第二步：把计算拆成乘法步骤
+
+回顾我们的计算 $x^3 + x + 5$，拆解后只有 3 个乘法：
+
+```
+第1步：x × x = sym₁        （计算 x²）
+第2步：sym₁ × x = sym₂     （计算 x³）  
+第3步：(sym₂ + x + 5) × 1 = y  （求和，乘1保持不变）
+```
+
+:::tip 为什么加法变成了乘法？
+R1CS 限制：**每行只能有一个乘法**
+
+但 $(sym₂ + x + 5) \times 1$ 其实就是把加法"藏"在左边，右边乘以 1 保持值不变！
+:::
+
+## 第三步：构建 A、B、C 矩阵
+
+每个乘法步骤变成矩阵的一行：
+- **A 行** = 乘号左边是什么？
+- **B 行** = 乘号右边是什么？  
+- **C 行** = 乘积存到哪里？
+
+### 理解矩阵的列
+
+矩阵的每一列对应 Witness 向量的一个位置：
+
+| 列 | 对应变量 | 作用 |
+|----|----------|------|
+| **1** | 常数 1 | 让我们能加常数（如 +5） |
+| **x** | 输入 x | 你的秘密 |
+| **y** | 输出 y | 计算结果 |
+| **sym₁** | 中间变量 | 存储 $x^2$ |
+| **sym₂** | 中间变量 | 存储 $x^3$ |
+
+**填入 1** = 使用这个变量，**填入 0** = 忽略这个变量
+
+---
+
+### 约束 1：$x \times x = \text{sym}_1$
+
+**要提取什么？** 左边要 $x$，右边要 $x$，结果存到 $\text{sym}_1$
+
+| | 1 | x | y | sym₁ | sym₂ | 含义 |
+|---|---|---|---|------|------|------|
+| **A** | 0 | **1** | 0 | 0 | 0 | 提取 x |
+| **B** | 0 | **1** | 0 | 0 | 0 | 提取 x |
+| **C** | 0 | 0 | 0 | **1** | 0 | 存到 sym₁ |
+
+**验算（代入 x=3, s=[1,3,35,9,27]）：**
+- $A \cdot s = 0\times1 + 1\times3 + 0\times35 + 0\times9 + 0\times27 = \mathbf{3}$
+- $B \cdot s = \mathbf{3}$
+- $C \cdot s = \mathbf{9}$
+- 检查：$3 \times 3 = 9$ ✓
+
+---
+
+### 约束 2：$\text{sym}_1 \times x = \text{sym}_2$
+
+**要提取什么？** 左边要 $\text{sym}_1$，右边要 $x$，结果存到 $\text{sym}_2$
+
+| | 1 | x | y | sym₁ | sym₂ | 含义 |
+|---|---|---|---|------|------|------|
+| **A** | 0 | 0 | 0 | **1** | 0 | 提取 sym₁ ($x^2$) |
+| **B** | 0 | **1** | 0 | 0 | 0 | 提取 x |
+| **C** | 0 | 0 | 0 | 0 | **1** | 存到 sym₂ |
+
+**验算：**
+- $A \cdot s = 9$, $B \cdot s = 3$, $C \cdot s = 27$
+- 检查：$9 \times 3 = 27$ ✓
+
+---
+
+### 约束 3：$(\text{sym}_2 + x + 5) \times 1 = y$
+
+**难点：** R1CS 只能做乘法，怎么表示加法？
+
+**技巧：** 把加法变成"系数加权和"！
+
+$$\text{sym}_2 + x + 5 = 1\times\text{sym}_2 + 1\times x + 5\times1$$
+
+| | 1 | x | y | sym₁ | sym₂ | 含义 |
+|---|---|---|---|------|------|------|
+| **A** | **5** | **1** | 0 | 0 | **1** | $5\times1 + 1\times x + 1\times\text{sym}_2$ |
+| **B** | **1** | 0 | 0 | 0 | 0 | 常数 1 |
+| **C** | 0 | 0 | **1** | 0 | 0 | 存到 y |
+
+**验算：**
+- $A \cdot s = 5\times1 + 1\times3 + 1\times27 = 35$
+- $B \cdot s = 1$
+- $C \cdot s = 35$
+- 检查：$35 \times 1 = 35$ ✓
+
+---
+
+### 试一试
 
 <R1CSMatrixDemo />
 
-**约束 1：$x \times x = \text{sym}_1$**
-
-| | 1 | x | y | sym₁ | sym₂ |
-|---|---|---|---|------|------|
-| **A** | 0 | 1 | 0 | 0 | 0 |
-| **B** | 0 | 1 | 0 | 0 | 0 |
-| **C** | 0 | 0 | 0 | 1 | 0 |
-
-验证：$(A \cdot s) \times (B \cdot s) = x \times x = x^2 = \text{sym}_1 = (C \cdot s)$ ✓
-
-**约束 2：$\text{sym}_1 \times x = \text{sym}_2$**
-
-| | 1 | x | y | sym₁ | sym₂ |
-|---|---|---|---|------|------|
-| **A** | 0 | 0 | 0 | 1 | 0 |
-| **B** | 0 | 1 | 0 | 0 | 0 |
-| **C** | 0 | 0 | 0 | 0 | 1 |
-
-验证：$(A \cdot s) \times (B \cdot s) = \text{sym}_1 \times x = x^3 = \text{sym}_2 = (C \cdot s)$ ✓
-
-**约束 3：$(\text{sym}_2 + x + 5) \times 1 = y$**
-
-这里加法被"折叠"进了左操作数，乘以常数 1：
-
-| | 1 | x | y | sym₁ | sym₂ |
-|---|---|---|---|------|------|
-| **A** | 5 | 1 | 0 | 0 | 1 |
-| **B** | 1 | 0 | 0 | 0 | 0 |
-| **C** | 0 | 0 | 1 | 0 | 0 |
-
-验证：$(5 \cdot 1 + 1 \cdot x + 1 \cdot \text{sym}_2) \times 1 = \text{sym}_2 + x + 5 = y = (C \cdot s)$ ✓
-
-## 完整的 A, B, C 矩阵
+## Complete A, B, C Matrices
 
 $$
 A = \begin{bmatrix}
@@ -102,4 +215,4 @@ $$
 
 ---
 
-下一节：[从 R1CS 到 QAP](./qap)
+Next section: [From R1CS to QAP](./qap)

@@ -566,7 +566,7 @@ function MatrixTab({ x }) {
           }}
           onClick={() => setShowDotProduct(!showDotProduct)}
         >
-          {showDotProduct ? '隐藏' : '显示'} 点积计算过程
+          {showDotProduct ? '隐藏' : '显示'} 所有点积计算
         </button>
       </div>
 
@@ -642,30 +642,46 @@ function MatrixTab({ x }) {
             </table>
           </div>
 
-          {/* Dot product detail for highlighted row */}
-          {showDotProduct && highlightRow >= 0 && highlightRow < matrix.length && (
+          {/* Dot product detail - show all when button clicked, or highlight row on hover */}
+          {showDotProduct && (
             <div style={{...styles.tooltip, marginTop: '12px'}}>
-              <strong style={{ color }}>{name}[{highlightRow + 1}] · s = </strong>
-              {matrix[highlightRow].map((val, i) => (
-                <span key={i}>
-                  {i > 0 && ' + '}
-                  <span style={{ color: val !== 0 ? '#ffcc80' : '#555' }}>
-                    {val}×{s[i]}
-                  </span>
-                </span>
-              ))}
-              {' = '}
-              <span style={{ color, fontWeight: 'bold' }}>
-                {dot(matrix[highlightRow], s)}
-              </span>
+              <strong style={{ color }}>点积计算过程：</strong>
+              <div style={{ marginTop: '8px' }}>
+                {matrix.map((row, ri) => (
+                  <div key={ri} style={{ 
+                    padding: '6px 0',
+                    borderBottom: ri < matrix.length - 1 ? '1px solid #3a4a6b' : 'none',
+                    backgroundColor: highlightRow === ri ? 'rgba(255,204,128,0.1)' : 'transparent',
+                    borderRadius: '4px',
+                    paddingLeft: '8px'
+                  }}>
+                    <span style={{ color, fontWeight: 'bold' }}>{name}[{ri + 1}]·s = </span>
+                    {row.map((val, i) => (
+                      <span key={i}>
+                        {i > 0 && ' + '}
+                        <span style={{ 
+                          color: val !== 0 ? '#ffcc80' : '#555',
+                          fontWeight: val !== 0 ? 'bold' : 'normal'
+                        }}>
+                          {val}×{s[i]}
+                        </span>
+                      </span>
+                    ))}
+                    <span style={{ color: '#666' }}> = </span>
+                    <span style={{ color, fontWeight: 'bold' }}>
+                      {dot(row, s)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
       ))}
 
       <div style={styles.tooltip}>
-        🎯 <strong>小贴士</strong>：鼠标悬停在矩阵行上可以高亮非零元素。
-        矩阵中的非零元素决定了每个约束"选择"哪些变量参与运算。
+        💡 <strong>提示</strong>：点击上方按钮查看完整的点积计算过程。
+        矩阵中高亮的非零元素表示该约束"选择"的变量。
       </div>
     </div>
   );
