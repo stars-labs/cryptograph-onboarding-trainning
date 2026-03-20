@@ -1,141 +1,142 @@
 ---
 sidebar_position: 4
-title: "证明生成与验证"
+title: "Proof Generation and Verification"
 ---
 
 import { ProofPipelineDemo } from '@site/src/components/Interactive';
 
-# 10.4 证明生成与验证
+# 10.4 Proof Generation and Verification
 
-## 交互式演示
+## Interactive Demo
 
-点击播放，看看数据如何从原始计算一步步变成简洁的零知识证明！
+Click play to see how data step-by-step transforms from raw computation into a succinct zero-knowledge proof!
 
 <ProofPipelineDemo />
 
 ---
 
-## Prover 怎样生成证明？
+## How does the Prover generate a proof?
 
 ```mermaid
 flowchart LR
-    W["知道 witness s"] --> POLY["计算 A(t), B(t), C(t)"]
-    POLY --> H["计算 H(t) = (A·B - C) / Z"]
-    H --> ENC["在加密点 τ 处<br/>求值并承诺"]
-    ENC --> PI["输出证明 π"]
+    W["Know witness s"] --> POLY["Calculate A(t), B(t), C(t)"]
+    POLY --> H["Calculate H(t) = (A·B - C) / Z"]
+    H --> ENC["Evaluate and commit<br/>at encrypted point τ"]
+    ENC --> PI["Output proof π"]
 ```
 
-1. Prover 知道完整的 witness $\vec{s}$（包含秘密输入）
-2. 用 witness 构造多项式 $A(t), B(t), C(t)$
-3. 计算 $H(t) = \frac{A(t) \cdot B(t) - C(t)}{Z(t)}$
-4. 在可信设置提供的加密点 $\tau$ 处对多项式求值
-5. 输出简洁的证明 $\pi$
+1. Prover knows the complete witness $\vec{s}$ (including secret inputs)
+2. Construct polynomials $A(t), B(t), C(t)$ using the witness
+3. Calculate $H(t) = \frac{A(t) \cdot B(t) - C(t)}{Z(t)}$
+4. Evaluate the polynomials at the encrypted point $\tau$ provided by the trusted setup
+5. Output the succinct proof $\pi$
 
-## Verifier 如何验证？
+## How does the Verifier verify?
 
-Verifier **不知道** witness，但可以：
+The Verifier **does not know** the witness, but can:
 
-1. 用公开输入重建部分多项式
-2. 用**双线性配对**（bilinear pairing）检查加密状态下的多项式等式
+1. Reconstruct parts of the polynomials using public inputs
+2. Check the polynomial equation in the encrypted state using **bilinear pairing**
 
 $$
 e(\pi_A, \pi_B) = e(\pi_C, g) \cdot e(\pi_H, \pi_Z)
 $$
 
-验证只需要几次配对运算，与电路大小无关——这就是 "succinct" 的含义！
+Verification only requires a few pairing operations, regardless of the circuit size—this is what "succinct" means!
 
-## 可信设置（Trusted Setup）
+## Trusted Setup
 
-可信设置生成加密参数，让 Prover 能在不暴露 witness 的情况下证明多项式关系：
+The trusted setup generates encrypted parameters that allow the Prover to prove polynomial relations without revealing the witness:
 
 ```
-设置阶段：
-1. 选择随机秘密 τ（"有毒废料"）
-2. 计算 g^τ, g^(τ²), g^(τ³), ... 并公开
-3. 销毁 τ
+Setup Phase:
+1. Choose a random secret τ ("toxic waste")
+2. Calculate g^τ, g^(τ²), g^(τ³), ... and make them public
+3. Destroy τ
 
-为什么安全：
-- Prover 能用 g^(τⁱ) 计算 "g^(P(τ))"，但不知道 τ 是多少
-- 椭圆曲线离散对数困难 → 无法从 g^τ 反推 τ
+Why it's secure:
+- The Prover can use g^(τⁱ) to calculate "g^(P(τ))", but doesn't know what τ is
+- Discrete logarithm problem on elliptic curves is hard → cannot reverse τ from g^τ
 ```
 
-:::warning 可信设置的风险
-如果 $\tau$ 没有被真正销毁，知道 $\tau$ 的人可以伪造证明！这就是为什么 Zcash 的 Powers of Tau 仪式需要上千人参与——只要有一人诚实销毁了自己的份额，整个系统就是安全的。
+:::warning Risks of Trusted Setup
+If $\tau$ is not truly destroyed, anyone who knows $\tau$ can forge proofs! This is why Zcash's Powers of Tau ceremony requires thousands of participants—as long as one person honestly destroys their share, the entire system is secure.
 :::
 
-## 配对（Pairing）的直觉解释
+## Intuitive Explanation of Pairing
 
-双线性配对 $e(P, Q)$ 是椭圆曲线上的一种特殊运算，它有一个关键性质：
+Bilinear pairing $e(P, Q)$ is a special operation on elliptic curves with a key property:
 
 $$
 e(aG, bG) = e(G, G)^{ab}
 $$
 
-这意味着我们可以**在加密状态下**检查乘法关系！
+This means we can check multiplication relations **in the encrypted state**!
 
 ```
-不用配对：
-  验证 A(τ) × B(τ) = C(τ) + H(τ) × Z(τ)
-  → 需要知道 τ 的值（不安全！）
+Without pairing:
+  Verify A(τ) × B(τ) = C(τ) + H(τ) × Z(τ)
+  → Need to know the value of τ (insecure!)
 
-用配对：
-  验证 e(g^A(τ), g^B(τ)) = e(g^C(τ), g) · e(g^H(τ), g^Z(τ))
-  → 只用加密后的值，无需知道 τ（安全！）
+With pairing:
+  Verify e(g^A(τ), g^B(τ)) = e(g^C(τ), g) · e(g^H(τ), g^Z(τ))
+  → Use only encrypted values, no need to know τ (secure!)
 ```
 
-## 完整 Pipeline 串讲
+## Complete Pipeline Overview
 
 ```mermaid
 flowchart TD
-    START["原始计算<br/>x³ + x + 5 = y"] -->|"拍平 (Flatten)"| CIRCUIT["算术电路<br/>加法门 + 乘法门"]
-    CIRCUIT -->|"每个乘法门 → 一个约束"| R1CS["R1CS 约束<br/>(A·s)×(B·s)=(C·s)"]
-    R1CS -->|"拉格朗日插值"| QAP["QAP 多项式<br/>A(t)·B(t)-C(t)=H(t)·Z(t)"]
-    QAP -->|"在加密点求值"| PROOF["证明 π<br/>(几百字节)"]
-    PROOF -->|"配对检查"| VERIFY["验证结果<br/>✅ / ❌"]
+    START["Raw Computation<br/>x³ + x + 5 = y"] -->|"Flatten"| CIRCUIT["Arithmetic Circuit<br/>Addition Gates + Multiplication Gates"]
+    CIRCUIT -->|"Each multiplication gate → one constraint"| R1CS["R1CS Constraint<br/>(A·s)×(B·s)=(C·s)"]
+    R1CS -->|"Lagrange Interpolation"| QAP["QAP Polynomial<br/>A(t)·B(t)-C(t)=H(t)·Z(t)"]
+    QAP -->|"Evaluate at encrypted point"| PROOF["Proof π<br/>(a few hundred bytes)"]
+    PROOF -->|"Pairing Check"| VERIFY["Verification Result<br/>✅ / ❌"]
 
-    SETUP["可信设置<br/>生成 g^τ, g^τ², ..."] -.->|"提供加密参数"| PROOF
-    SETUP -.->|"提供验证密钥"| VERIFY
+    SETUP["Trusted Setup<br/>Generate g^τ, g^τ², ..."] -.->|"Provide encrypted parameters"| PROOF
+    SETUP -.->|"Provide verification key"| VERIFY
 ```
 
-## 与 Circom / snarkjs 工具链的对应关系
+## Mapping to Circom / snarkjs Toolchain
 
-| Pipeline 步骤 | 数学对象 | Circom/snarkjs 工具 |
+| Pipeline Step | Mathematical Object | Circom/snarkjs Tool |
 |---|---|---|
-| 编写计算逻辑 | 算术电路 | `circom` 编写 `.circom` 文件 |
-| 编译电路 | R1CS | `circom --r1cs` 生成 `.r1cs` 文件 |
-| 计算 witness | witness 向量 $\vec{s}$ | `circom --wasm` + `snarkjs wtns calculate` |
-| 可信设置 | $g^{\tau^i}$ 等参数 | `snarkjs groth16 setup` 生成 `.zkey` |
-| 生成证明 | QAP → $\pi$ | `snarkjs groth16 prove` |
-| 验证 | 配对检查 | `snarkjs groth16 verify` |
-| 链上验证 | Solidity 合约 | `snarkjs zkey export solidityverifier` |
+| Write computation logic | Arithmetic Circuit | `circom` write `.circom` file |
+| Compile circuit | R1CS | `circom --r1cs` generate `.r1cs` file |
+| Calculate witness | Witness vector $\vec{s}$ | `circom --wasm` + `snarkjs wtns calculate` |
+| Trusted setup | $g^{\tau^i}$ etc. parameters | `snarkjs groth16 setup` generate `.zkey` |
+| Generate proof | QAP → $\pi$ | `snarkjs groth16 prove` |
+| Verify | Pairing check | `snarkjs groth16 verify` |
+| On-chain verification | Solidity contract | `snarkjs zkey export solidityverifier` |
 
-## 完整命令行示例
+## Full Command Line Example
 
 ```bash
-# 1. 编译电路 → 得到 R1CS 和 WASM
+# 1. Compile circuit → get R1CS and WASM
 circom circuit.circom --r1cs --wasm --sym
 
-# 2. 查看电路信息
+# 2. View circuit info
 snarkjs r1cs info circuit.r1cs
-# Constraints: 3 (对应我们的 3 个约束)
+# Constraints: 3 (corresponding to our 3 constraints)
 
-# 3. 可信设置 (使用 Powers of Tau)
+# 3. Trusted setup (using Powers of Tau)
 snarkjs groth16 setup circuit.r1cs pot12_final.ptau circuit.zkey
 
-# 4. 提供输入，计算 witness
+# 4. Provide input, calculate witness
 echo '{"x": 3}' > input.json
 snarkjs wtns calculate circuit.wasm input.json witness.wtns
 
-# 5. 生成证明
+# 5. Generate proof
 snarkjs groth16 prove circuit.zkey witness.wtns proof.json public.json
-# proof.json → 证明 π
-# public.json → 公开输出 [35]（即 y = x³+x+5 = 35）
+# proof.json → proof π
+# public.json → public output [35] (i.e., y = x³+x+5 = 35)
 
-# 6. 验证
+# 6. Verify
 snarkjs groth16 verify verification_key.json public.json proof.json
 # → snarkjs: OK!
 ```
 
 ---
 
-下一节：[思考题与练习](./exercises)
+Next section: [Thinking Questions and Exercises](./exercises)
+

@@ -4,80 +4,80 @@ sidebar_position: 6
 
 import { SchnorrDemo } from '@site/src/components/Interactive';
 
-# 第六章：Schnorr 签名算法
+# Chapter 6: Schnorr Signature Algorithm
 
-## 🎮 交互式演示
+## 🎮 Interactive Demo
 
-在深入理论之前，先动手体验 Schnorr 签名的简洁之美！请使用下方的交互式工具：
+Before diving into the theory, experience the concise beauty of Schnorr signatures firsthand! Use the interactive tool below:
 
 <SchnorrDemo />
 
 ---
 
-Schnorr 签名是一种简洁、高效的数字签名方案，比 ECDSA 更简单且支持签名聚合。比特币 Taproot 升级引入了 Schnorr 签名。
+Schnorr signatures are concise and efficient digital signature schemes. They are simpler than ECDSA and support signature aggregation. Bitcoin's Taproot upgrade introduced Schnorr signatures.
 
 ## 5.1 Schnorr vs ECDSA
 
-### 对比表
+### Comparison Table
 
-| 特性 | ECDSA | Schnorr |
+| Feature | ECDSA | Schnorr |
 |------|-------|---------|
-| 签名大小 | 64-72 字节 | 64 字节 |
-| 数学复杂度 | 较复杂 | 更简单 |
-| 签名聚合 | ❌ 不支持 | ✅ 原生支持 |
-| 批量验证 | ❌ 效率低 | ✅ 高效 |
-| 多签效率 | ❌ 多个签名 | ✅ 聚合为一个 |
-| 专利问题 | 无 | 已过期(2008) |
+| Signature Size | 64-72 bytes | 64 bytes |
+| Mathematical Complexity | More complex | Simpler |
+| Signature Aggregation | ❌ Not supported | ✅ Native support |
+| Batch Verification | ❌ Low efficiency | ✅ Efficient |
+| Multi-sig Efficiency | ❌ Multiple signatures | ✅ Aggregated into one |
+| Patent Issues | None | Expired (2008) |
 
-### 为什么比特币现在才用？
+### Why did Bitcoin only start using it now?
 
-Schnorr 签名专利在 2008 年才过期，而比特币在 2009 年诞生，当时 ECDSA 是更安全的选择。
+The Schnorr signature patent only expired in 2008, and Bitcoin was born in 2009. At that time, ECDSA was a more secure choice.
 
-## 5.2 Schnorr 签名原理
+## 5.2 Schnorr Signature Principles
 
-### 系统参数
+### System Parameters
 
-与 ECDSA 相同：
-- 椭圆曲线参数 (a, b, p, n)
-- 基点 G
-- 私钥 d，公钥 P = d × G
+Same as ECDSA:
+- Elliptic curve parameters (a, b, p, n)
+- Base point G
+- Private key d, public key P = d × G
 
-### 签名生成
+### Signature Generation
 
-请在演示的 **"2. 签名生成"** 标签页中体验。
+Experience this in the **"2. Signature Generation"** tab of the demo.
 
-1. 选择随机数 $k$
-2. 计算 $R = k \times G$
-3. 计算挑战值 $e = Hash(R || P || m)$
-4. 计算 $s = k + e \times d \pmod n$
-5. 返回签名 $(R, s)$
+1. Choose a random number $k$
+2. Calculate $R = k \times G$
+3. Calculate the challenge value $e = Hash(R || P || m)$
+4. Calculate $s = k + e \times d \pmod n$
+5. Return the signature $(R, s)$
 
-### 💡 详解：什么是 Hash(R || P || m)?
+### 💡 Detailed Explanation: What is Hash(R || P || m)?
 
-这个公式里的 `||` 符号代表**拼接 (Concatenation)**。
+The `||` symbol in this formula represents **Concatenation**.
 
-想象我们在做一个三明治：
-1. **R (随机承诺)**: 面包片
-2. **P (公钥)**: 火腿
-3. **m (消息)**: 生菜
+Imagine we are making a sandwich:
+1. **R (Random Commitment)**: Bread slice
+2. **P (Public Key)**: Ham
+3. **m (Message)**: Lettuce
 
-我们要把这三样东西紧紧地压在一起，然后放入搅拌机 (Hash 函数) 里，打碎成一个无法还原的数字 (挑战值 e)。
+We need to press these three things tightly together and then put them into a blender (Hash function) to break them into an irreversible number (challenge value e).
 
-这样做是为了：
-- **绑定随机数 R**: 防止重放攻击
-- **绑定公钥 P**: 防止公钥替换攻击 (Rogue Key Attack)
-- **绑定消息 m**: 确保签名只对这条消息有效
+This is done to:
+- **Bind random number R**: Prevent replay attacks
+- **Bind public key P**: Prevent Rogue Key Attacks
+- **Bind message m**: Ensure the signature is only valid for this message
 
-### 签名验证
+### Signature Verification
 
-请在演示的 **"3. 签名验证"** 标签页中体验。
+Experience this in the **"3. Signature Verification"** tab of the demo.
 
-1. 计算挑战值 $e = \text{Hash}(R || P || m)$.
-2. 验证: $s \times G = R + e \times P$.
+1. Calculate the challenge value $e = \text{Hash}(R || P || m)$.
+2. Verify: $s \times G = R + e \times P$.
 
-### 验证的数学推导
+### Mathematical Derivation of Verification
 
-我们展开验证公式：
+We expand the verification formula:
 
 $$
 \begin{aligned}
@@ -87,99 +87,99 @@ s \cdot G &= (k + e \cdot d) \cdot G \\
 \end{aligned}
 $$
 
-这比 ECDSA 的验证公式简洁得多。
+This is much more concise than the ECDSA verification formula.
 
-## 5.3 小数值示例
+## 5.3 Small Value Example
 
-（请参考文章开头的交互式演示进行操作，观察 R 和 s 的计算过程）
+(Please refer to the interactive demo at the beginning of the article to observe the calculation process of R and s)
 
-## 5.4 签名聚合 - Schnorr 的杀手锏
+## 5.4 Signature Aggregation - Schnorr's Killer Feature
 
-### 多重签名问题
+### Multi-signature Problem
 
-传统多签：3-of-3 多签需要 3 个独立签名，占用空间大。
+Traditional multi-sig: 3-of-3 multi-sig requires 3 independent signatures, which takes up a lot of space.
 
-### MuSig 协议
+### MuSig Protocol
 
-Schnorr 允许将多个签名聚合为一个！请在演示的 **"4. 签名聚合 (MuSig)"** 标签页中体验。
+Schnorr allows aggregating multiple signatures into one! Experience this in the **"4. Signature Aggregation (MuSig)"** tab of the demo.
 
-**简化的聚合流程：**
+**Simplified Aggregation Process:**
 
-1. **聚合公钥**: $P_{agg} = P_1 + P_2 + P_3$
-2. **聚合随机数**: $R_{agg} = R_1 + R_2 + R_3$
-3. **计算挑战**: $e = Hash(R_{agg} || P_{agg} || m)$
-4. **部分签名**: 每个签名者计算 $s_i = k_i + e \times d_i$
-5. **聚合签名**: $s_{agg} = \sum s_i$
+1. **Aggregate Public Key**: $P_{agg} = P_1 + P_2 + P_3$
+2. **Aggregate Random Number**: $R_{agg} = R_1 + R_2 + R_3$
+3. **Calculate Challenge**: $e = Hash(R_{agg} || P_{agg} || m)$
+4. **Partial Signature**: Each signer calculates $s_i = k_i + e \times d_i$
+5. **Aggregate Signature**: $s_{agg} = \sum s_i$
 
-最终签名 $(R_{agg}, s_{agg})$ 看起来就像一个普通的单签名！验证者**无法区分**这是单签还是多签。
+The final signature $(R_{agg}, s_{agg})$ looks like a normal single signature! Verifiers **cannot distinguish** whether this is a single signature or a multi-signature.
 
-## 5.5 批量验证
+## 5.5 Batch Verification
 
-验证 1000 个签名，需要 1000 次独立验证吗？
+To verify 1000 signatures, do you need 1000 independent verifications?
 
-Schnorr 支持批量验证：
+Schnorr supports batch verification:
 $$
 (s_1 + s_2 + ... + s_n) \times G = \sum R_i + \sum (e_i \times P_i)
 $$
 
-效率提升约 2-3 倍！
+Efficiency increases by about 2-3 times!
 
-## 5.6 比特币 Taproot 中的 Schnorr
+## 5.6 Schnorr in Bitcoin Taproot
 
-比特币使用 secp256k1 曲线的 Schnorr 签名 (BIP-340)。
+Bitcoin uses Schnorr signatures on the secp256k1 curve (BIP-340).
 
-**Taproot 的优势：**
-- **隐私**：多签看起来和单签一样，链上无法区分。
-- **效率**：签名更小，验证更快。
-- **灵活**：支持复杂脚本的隐藏（MAST）。
+**Advantages of Taproot:**
+- **Privacy**: Multi-sig looks the same as single-sig, making it indistinguishable on-chain.
+- **Efficiency**: Signatures are smaller and verification is faster.
+- **Flexibility**: Supports hiding complex scripts (MAST).
 
-## 5.7 以太坊 2.0 为什么不用 Schnorr？
+## 5.7 Why doesn't Ethereum 2.0 use Schnorr?
 
-既然 Schnorr 也支持聚合，为什么以太坊 2.0（共识层）坚定地选择了更复杂的 BLS 签名？
+Since Schnorr also supports aggregation, why did Ethereum 2.0 (Consensus Layer) firmly choose the more complex BLS signature?
 
-核心原因只有一个：**非交互式聚合 (Non-interactive Aggregation)**。
+The core reason is: **Non-interactive Aggregation**.
 
-### 交互 vs 非交互
+### Interactive vs Non-interactive
 
-| 特性 | Schnorr (MuSig) | BLS |
+| Feature | Schnorr (MuSig) | BLS |
 |---|---|---|
-| **聚合流程** | **需要交互 (Interactive)** | **非交互 (Non-interactive)** |
-| **通信轮次** | 至少 2 轮（所有签名者必须在线互相通信） | 0 轮（签名者只需把签名发给收集者） |
-| **适用场景** | 小规模多签（如 3-of-3 钱包） | 大规模共识（如 300,000 验证者） |
-| **签名长度** | 64 字节 | 48 字节 (更小!) |
-| **验证速度** | 极快 | 较慢 (但在大规模下通过聚合弥补) |
+| **Aggregation Process** | **Requires Interaction (Interactive)** | **Non-interactive** |
+| **Communication Rounds** | At least 2 rounds (all signers must be online and communicate with each other) | 0 rounds (signers only need to send the signature to the collector) |
+| **Applicable Scenarios** | Small-scale multi-sig (e.g., 3-of-3 wallets) | Large-scale consensus (e.g., 300,000 validators) |
+| **Signature Length** | 64 bytes | 48 bytes (even smaller!) |
+| **Verification Speed** | Extremely fast | Slower (but compensated by aggregation at scale) |
 
-**场景模拟：**
+**Scenario Simulation:**
 
-*   **Schnorr 场景**：要聚合 1000 个验证者的签名。他们必须全部同时在线，先交换随机数 R，算出聚合 R，再分别签名。如果中间有人掉线，整个过程可能要重来。这对全球分布的区块链网络是不现实的。
-*   **BLS 场景**：1000 个验证者各自在家里签好名，发给"区块提议者"。提议者收到几个就聚合几个，不需要验证者之间有任何沟通。这对以太坊这种大规模网络是完美的。
+*   **Schnorr Scenario**: To aggregate signatures from 1000 validators. They must all be online at the same time, exchange random numbers R first, calculate the aggregate R, and then sign separately. If someone goes offline in the middle, the whole process might have to start over. This is unrealistic for a globally distributed blockchain network.
+*   **BLS Scenario**: 1000 validators each sign at home and send it to the "block proposer". The proposer aggregates as many as they receive, without any communication between validators. This is perfect for a large-scale network like Ethereum.
 
-## 5.8 安全注意事项
+## 5.8 Security Considerations
 
-### 随机数 k 的重要性
+### Importance of Random Number k
 
-与 ECDSA 一样，k 必须真随机且不重复，否则私钥会泄露！
+Like ECDSA, k must be truly random and not repeated, otherwise the private key will be leaked!
 
-### Rogue Key 攻击
+### Rogue Key Attack
 
-在多签场景中，恶意参与者可能选择特殊公钥来抵消其他人的贡献。
-**MuSig2 协议**通过额外的承诺轮次解决此问题。
+In multi-sig scenarios, malicious participants might choose special public keys to cancel out others' contributions.
+The **MuSig2 protocol** solves this problem through an additional commitment round.
 
-## 本章小结
+## Chapter Summary
 
-| 特性 | Schnorr 优势 |
+| Feature | Schnorr Advantage |
 |------|-------------|
-| **简洁性** | 线性方程，验证简单 |
-| **聚合性** | 多个签名可合并为一个 |
-| **批量验证** | 效率提升 2-3 倍 |
-| **隐私性** | 多签与单签不可区分 |
+| **Simplicity** | Linear equation, simple verification |
+| **Aggregation** | Multiple signatures can be merged into one |
+| **Batch Verification** | Efficiency increases by 2-3 times |
+| **Privacy** | Multi-sig and single-sig are indistinguishable |
 
-## 思考题
+## Thinking Questions
 
-1. 为什么 Schnorr 签名可以聚合，而 ECDSA 不行？
-2. MuSig 协议如何防止 Rogue Key 攻击？
-3. Taproot 升级如何利用 Schnorr 提高隐私性？
+1. Why can Schnorr signatures be aggregated while ECDSA cannot?
+2. How does the MuSig protocol prevent Rogue Key attacks?
+3. How does the Taproot upgrade use Schnorr to improve privacy?
 
 ---
 
-下一章：[EdDSA/Ed25519 签名](/docs/cryptography/eddsa)
+Next Chapter: [EdDSA/Ed25519 Signature](/docs/cryptography/eddsa)

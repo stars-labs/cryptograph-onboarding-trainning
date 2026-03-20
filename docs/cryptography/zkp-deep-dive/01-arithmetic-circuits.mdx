@@ -1,68 +1,68 @@
 ---
 sidebar_position: 1
-title: "从计算到算术电路"
+title: "From Computation to Arithmetic Circuits"
 ---
 
 import { CircuitBuilderDemo } from '@site/src/components/Interactive';
 
-# 10.1 从计算到算术电路
+# 10.1 From Computation to Arithmetic Circuits
 
-## 交互式演示
+## Interactive Demo
 
-先动手玩一玩，直观感受如何把复杂计算"拍平"为算术电路！
+Try it out first to get an intuitive feel for how complex computations are "flattened" into arithmetic circuits!
 
 <CircuitBuilderDemo />
 
 ---
 
-## 什么是算术电路？
+## What is an Arithmetic Circuit?
 
-算术电路是一种将任意计算表示为**加法门**和**乘法门**组成的有向无环图（DAG）。每个门接受两个输入，产生一个输出。
+An arithmetic circuit is a directed acyclic graph (DAG) that represents any computation as a series of **addition gates** and **multiplication gates**. Each gate takes two inputs and produces one output.
 
 ```
-加法门：  a + b = c
-乘法门：  a × b = c
+Addition gate:       a + b = c
+Multiplication gate: a × b = c
 ```
 
-:::info 为什么要用电路？
-零知识证明系统不能直接处理 "if-else"、循环等高级语言结构。通过把计算转换为算术电路，我们得到了一种**统一的、数学化的表示方式**，方便后续转换为约束系统。
+:::info Why use circuits?
+Zero-knowledge proof systems cannot directly process high-level language structures like "if-else" or loops. By converting computations into arithmetic circuits, we get a **unified, mathematical representation** that is easy to convert into constraint systems later.
 :::
 
-## 示例：拍平 $x^3 + x + 5 = y$
+## Example: Flattening $x^3 + x + 5 = y$
 
-目标：将 $x^3 + x + 5 = y$ 拆解为只含基本运算的门操作。
+Goal: Decompose $x^3 + x + 5 = y$ into gate operations containing only basic operations.
 
-**Step 1：引入中间变量**
+**Step 1: Introduce intermediate variables**
 
-一个门只能做一次乘法或加法，因此需要把复合运算拆开：
+A gate can only perform one multiplication or addition at a time, so composite operations need to be broken down:
 
 $$
 \begin{aligned}
-\text{sym}_1 &= x \times x & \quad \text{(第 1 个乘法门)} \\
-\text{sym}_2 &= \text{sym}_1 \times x & \quad \text{(第 2 个乘法门)} \\
-y &= \text{sym}_2 + x + 5 & \quad \text{(加法，可合并)}
+\text{sym}_1 &= x \times x & \quad \text{(1st multiplication gate)} \\
+\text{sym}_2 &= \text{sym}_1 \times x & \quad \text{(2nd multiplication gate)} \\
+y &= \text{sym}_2 + x + 5 & \quad \text{(Addition, can be merged)}
 \end{aligned}
 $$
 
-**Step 2：画出电路图**
+**Step 2: Draw the circuit diagram**
 
 ```mermaid
 flowchart TD
-    X["输入: x"] --> M1["× 乘法门 1"]
+    X["Input: x"] --> M1["× Multiplication Gate 1"]
     X --> M1
-    M1 -->|"sym1 = x²"| M2["× 乘法门 2"]
+    M1 -->|"sym1 = x²"| M2["× Multiplication Gate 2"]
     X --> M2
-    M2 -->|"sym2 = x³"| ADD["+ 合并加法"]
+    M2 -->|"sym2 = x³"| ADD["+ Merged Addition"]
     X -->|"+x"| ADD
-    FIVE["常数: 5"] -->|"+5"| ADD
-    ADD -->|"y = x³+x+5"| Y["输出: y"]
+    FIVE["Constant: 5"] -->|"+5"| ADD
+    ADD -->|"y = x³+x+5"| Y["Output: y"]
 ```
 
-**关键点：**
-- 乘法门是电路的"核心"——每个乘法门对应一个 R1CS 约束
-- 加法门是"免费"的——可以合并到乘法门的输入/输出中
-- 这个电路有 **2 个乘法门** + 1 个合并约束 = **3 个 R1CS 约束**
+**Key Points:**
+- Multiplication gates are the "core" of the circuit—each multiplication gate corresponds to one R1CS constraint
+- Addition gates are "free"—they can be merged into the inputs/outputs of multiplication gates
+- This circuit has **2 multiplication gates** + 1 merged constraint = **3 R1CS constraints**
 
 ---
 
-下一节：[R1CS 约束系统](./r1cs)
+Next section: [R1CS Constraint System](./r1cs)

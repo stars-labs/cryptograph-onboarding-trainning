@@ -4,31 +4,31 @@ sidebar_position: 5
 
 import { CryptoAppsDemo } from '@site/src/components/Interactive';
 
-# 第五章：加密货币应用
+# Chapter 5: Cryptocurrency Applications
 
-## 🎮 交互式演示
+## 🎮 Interactive Demo
 
-本章将 ECDSA 知识应用到实际的加密货币场景中。请使用下方的交互式工具体验核心流程：
+This chapter applies ECDSA knowledge to real-world cryptocurrency scenarios. Use the interactive tool below to experience the core processes:
 
 <CryptoAppsDemo />
 
 ---
 
-## 4.1 多链地址生成
+## 4.1 Multi-chain Address Generation
 
-### 为什么同一个私钥对应不同地址？
+### Why does the same private key correspond to different addresses?
 
-不同的区块链使用不同的：
-1.  **签名算法**：如 Bitcoin/Ethereum 使用 ECDSA (secp256k1)，而 Solana/Polkadot 使用 EdDSA (Ed25519)。
-2.  **哈希算法**：如 SHA256, Keccak-256, Blake2b 等。
-3.  **地址格式**：如 Base58Check, Bech32, Hex, SS58。
+Different blockchains use different:
+1.  **Signature Algorithms**: e.g., Bitcoin/Ethereum use ECDSA (secp256k1), while Solana/Polkadot use EdDSA (Ed25519).
+2.  **Hash Algorithms**: e.g., SHA256, Keccak-256, Blake2b, etc.
+3.  **Address Formats**: e.g., Base58Check, Bech32, Hex, SS58.
 
-请在上方演示的 **"🔑 多链地址生成"** 标签页中体验：**同一个 256 位私钥**如何在不同链上生成完全不同的地址。这说明了私钥是资产的根本控制权，而地址只是公钥的不同表现形式。
+Experience this in the **"🔑 Multi-chain Address Generation"** tab of the demo above: see how the **same 256-bit private key** generates completely different addresses on different chains. This illustrates that the private key is the ultimate control over assets, while addresses are just different representations of the public key.
 
 ```mermaid
 flowchart LR
-    PK["私钥 (256 bit)"] -->|ECDSA| PUB1["公钥 (secp256k1)"]
-    PK -->|EdDSA| PUB2["公钥 (Ed25519)"]
+    PK["Private Key (256 bit)"] -->|ECDSA| PUB1["Public Key (secp256k1)"]
+    PK -->|EdDSA| PUB2["Public Key (Ed25519)"]
     
     PUB1 -->|SHA256+RIPEMD| BTC["BTC (Base58)"]
     PUB1 -->|Keccak| ETH["ETH (Hex)"]
@@ -36,89 +36,89 @@ flowchart LR
     PUB2 -->|Blake2b| DOT["DOT (SS58)"]
 ```
 
-**主流链地址特征：**
+**Mainstream Chain Address Characteristics:**
 - **Bitcoin**: `1...` (Legacy), `bc1...` (Segwit)
-- **Ethereum**: `0x...` (40 字符 Hex)
-- **Solana**: 44 字符 Base58
+- **Ethereum**: `0x...` (40-character Hex)
+- **Solana**: 44-character Base58
 - **Polkadot**: `1...` (SS58)
 - **Tron**: `T...`
 
-## 4.2 交易签名
+## 4.2 Transaction Signing
 
-在区块链中，每一笔转账都需要发送者的数字签名。请在演示的 **"📝 交易签名"** 标签页中体验。
+In blockchain, every transfer requires a digital signature from the sender. Experience this in the **"📝 Transaction Signing"** tab of the demo.
 
-### 签名流程
+### Signing Process
 
-1.  **构造交易**：包含 nonce、gas、接收方、金额等字段。
-2.  **序列化**：使用 RLP (Recursive Length Prefix) 编码将字段打包。
-3.  **哈希**：对 RLP 编码后的数据进行 Keccak-256 哈希。
-4.  **签名**：使用私钥对哈希值进行 ECDSA 签名，得到 `(r, s, v)`。
+1.  **Construct Transaction**: Includes fields like nonce, gas, recipient, amount, etc.
+2.  **Serialization**: Pack fields using RLP (Recursive Length Prefix) encoding.
+3.  **Hashing**: Perform Keccak-256 hash on the RLP-encoded data.
+4.  **Signing**: Use the private key to perform an ECDSA signature on the hash value, resulting in `(r, s, v)`.
 
-### v 值的含义
+### Meaning of the v Value
 
-签名结果除了 `r` 和 `s`，还有一个 `v` 值（Recovery ID）。
-`v` 的作用是告诉验证者，在恢复公钥时应该使用椭圆曲线上的哪一个点（y 是正数还是负数）。这使得以太坊可以在不发送发送者公钥的情况下，直接从签名恢复出发起人地址，节省了链上空间。
+In addition to `r` and `s`, the signature result includes a `v` value (Recovery ID).
+The role of `v` is to tell the verifier which point on the elliptic curve to use when recovering the public key (whether y is positive or negative). This allows Ethereum to recover the sender's address directly from the signature without requiring the sender's public key, saving on-chain space.
 
-## 4.3 签名验证与公钥恢复
+## 4.3 Signature Verification and Public Key Recovery
 
-ECDSA 有一个特殊特性：可以从签名恢复签名者的公钥！这就是智能合约中 `ecrecover` 函数的原理。
+ECDSA has a special property: the signer's public key can be recovered from the signature! This is the principle behind the `ecrecover` function in smart contracts.
 
-从签名 (r, s) 和消息哈希 z：
-1. 计算 R 点：r 是 R 的 x 坐标。
-2. 利用 v 值确定 R 的 y 坐标。
-3. 计算：$Q = r^{-1}(sR - zG)$。
-4. 恢复出的 Q 就是公钥，进而可以算出地址。
+From signature (r, s) and message hash z:
+1. Calculate point R: r is the x-coordinate of R.
+2. Use the v value to determine the y-coordinate of R.
+3. Calculate: $Q = r^{-1}(sR - zG)$.
+4. The recovered Q is the public key, from which the address can be calculated.
 
-## 4.4 HD 钱包（分层确定性钱包）
+## 4.4 HD Wallets (Hierarchical Deterministic Wallets)
 
-### 问题与解决方案
+### Problem and Solution
 
-如果每次收款都创建一个新地址（为了隐私），你需要备份成百上千个私钥，这非常容易丢失。
-HD 钱包允许你通过**一组助记词**（12 或 24 个单词）生成无限个密钥对。请在演示的 **"🌳 HD 钱包"** 标签页中尝试。
+If you create a new address for every payment (for privacy), you would need to back up hundreds or thousands of private keys, which is very easy to lose.
+HD wallets allow you to generate an infinite number of key pairs from a single set of **mnemonic phrases** (12 or 24 words). Try this in the **"🌳 HD Wallet"** tab of the demo.
 
 ```mermaid
 flowchart TD
-    M["助记词 (12/24 词)<br/>abandon ability able about..."] --> S["种子 Seed<br/>512 bits"]
-    S --> MK["主私钥 + 链码<br/>Master Key"]
-    MK --> A0["m/44'/60'/0'<br/>账户 0"]
-    MK --> A1["m/44'/60'/1'<br/>账户 1"]
-    MK --> A2["m/44'/60'/2'<br/>账户 2"]
-    A0 --> ADDR0["m/.../0/0<br/>地址 0"]
-    A0 --> ADDR1["m/.../0/1<br/>地址 1"]
+    M["Mnemonic (12/24 words)<br/>abandon ability able about..."] --> S["Seed<br/>512 bits"]
+    S --> MK["Master Key + Chain Code<br/>Master Key"]
+    MK --> A0["m/44'/60'/0'<br/>Account 0"]
+    MK --> A1["m/44'/60'/1'<br/>Account 1"]
+    MK --> A2["m/44'/60'/2'<br/>Account 2"]
+    A0 --> ADDR0["m/.../0/0<br/>Address 0"]
+    A0 --> ADDR1["m/.../0/1<br/>Address 1"]
 ```
 
-## 4.5 多重签名
+## 4.5 Multi-signature
 
-普通账户由一个私钥控制（单点故障）。多重签名（MultiSig）要求 $m$ 个密钥中的 $n$ 个签名才能执行交易（$m$-of-$n$）。
+A normal account is controlled by a single private key (single point of failure). Multi-signature (MultiSig) requires $n$ signatures out of $m$ keys to execute a transaction ($m$-of-$n$).
 
-**2-of-3 多签示例:**
+**2-of-3 MultiSig Example:**
 
 ```mermaid
 flowchart LR
-    A[Alice's Key] --> SIG["至少 2 个签名"]
+    A[Alice's Key] --> SIG["At least 2 signatures"]
     B[Bob's Key] --> SIG
     C[Carol's Key] --> SIG
-    SIG --> TX[执行交易]
+    SIG --> TX[Execute Transaction]
 ```
 
-在演示的 **"🤝 多重签名"** 标签页中，你可以模拟 Alice、Bob 和 Carol 共同管理资金的流程。
+In the **"🤝 Multi-signature"** tab of the demo, you can simulate the process of Alice, Bob, and Carol co-managing funds.
 
-## 本章小结
+## Chapter Summary
 
-| 应用 | 关键技术 |
+| Application | Key Technology |
 |------|----------|
-| **地址生成** | 公钥哈希 + 编码 (Base58/Hex) |
-| **交易签名** | RLP 编码 + ECDSA + 链 ID 防重放 |
-| **HD 钱包** | 助记词 (BIP-39) + 路径派生 (BIP-32/44) |
-| **多重签名** | 智能合约逻辑控制 |
+| **Address Generation** | Public Key Hash + Encoding (Base58/Hex) |
+| **Transaction Signing** | RLP Encoding + ECDSA + Chain ID Replay Protection |
+| **HD Wallet** | Mnemonic (BIP-39) + Path Derivation (BIP-32/44) |
+| **Multi-signature** | Smart Contract Logic Control |
 
-## 练习题
+## Exercises
 
-1.  手动计算一个比特币地址的 Base58Check 编码
-2.  解释为什么以太坊交易需要 chainId
-3.  设计一个 3-of-5 多签的资金管理方案
+1.  Manually calculate the Base58Check encoding for a Bitcoin address
+2.  Explain why Ethereum transactions need a chainId
+3.  Design a 3-of-5 MultiSig fund management scheme
 
-## 进阶阅读
+## Further Reading
 
 - [BIP-32: Hierarchical Deterministic Wallets](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)
 - [EIP-155: Replay Attack Protection](https://eips.ethereum.org/EIPS/eip-155)
@@ -126,13 +126,13 @@ flowchart LR
 
 ---
 
-恭喜完成课程！现在你已经掌握了：
-- 密码学基础概念
-- RSA 非对称加密
-- 椭圆曲线数学原理
-- ECDSA 签名算法
-- 加密货币实际应用
+Congratulations on completing the course! You have now mastered:
+- Basic Cryptography Concepts
+- RSA Asymmetric Encryption
+- Elliptic Curve Mathematical Principles
+- ECDSA Signature Algorithm
+- Practical Cryptocurrency Applications
 
 ---
 
-下一章：[Schnorr 签名算法](/docs/cryptography/schnorr) - 更简洁高效的签名方案
+Next Chapter: [Schnorr Signature Algorithm](/docs/cryptography/schnorr) - A simpler and more efficient signature scheme

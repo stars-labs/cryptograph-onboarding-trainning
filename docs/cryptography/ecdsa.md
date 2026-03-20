@@ -4,208 +4,208 @@ sidebar_position: 4
 
 import { ECDSADemo } from '@site/src/components/Interactive';
 
-# 第四章：ECDSA 签名算法
+# Chapter 4: ECDSA Signature Algorithm
 
-本章是课程的核心，我们将完整走过 ECDSA 的签名和验证流程。
+This chapter is the core of the course, where we will walk through the complete ECDSA signing and verification process.
 
-## 3.1 ECDSA 概述
+## 3.1 ECDSA Overview
 
 **ECDSA** = **E**lliptic **C**urve **D**igital **S**ignature **A**lgorithm
 
-### 签名的目的
+### Purpose of Signatures
 
-| 功能 | 说明 |
+| Function | Description |
 |------|------|
-| **身份认证** | 证明签名者持有私钥 |
-| **不可否认** | 签名者无法抵赖 |
-| **完整性** | 消息被篡改后签名失效 |
+| **Authentication** | Proves the signer holds the private key |
+| **Non-repudiation** | The signer cannot deny the signature |
+| **Integrity** | The signature becomes invalid if the message is tampered with |
 
-### 核心组件
+### Core Components
 
-| 类别 | 参数 | 说明 |
+| Category | Parameter | Description |
 |------|------|------|
-| **系统参数** | 曲线 | y² = x³ + ax + b (mod p) |
-| | 基点 G | 生成元 |
-| | 阶 n | G 的阶，nG = O |
-| **密钥对** | 私钥 d | d ∈ [1, n-1]，随机整数 |
-| | 公钥 Q | Q = d × G，曲线上的点 |
-| **签名** | (r, s) | 两个整数 |
+| **System Parameters** | Curve | y² = x³ + ax + b (mod p) |
+| | Base Point G | Generator |
+| | Order n | Order of G, nG = O |
+| **Key Pair** | Private Key d | d ∈ [1, n-1], a random integer |
+| | Public Key Q | Q = d × G, a point on the curve |
+| **Signature** | (r, s) | Two integers |
 
-## 3.2 密钥生成
+## 3.2 Key Generation
 
-### 步骤
+### Steps
 
-1. 选择随机数 d ∈ [1, n-1] 作为**私钥**
-2. 计算 Q = d × G 作为**公钥**
+1. Select a random number d ∈ [1, n-1] as the **private key**
+2. Calculate Q = d × G as the **public key**
 
-### 交互式演示：ECDSA 完整流程
+### Interactive Demo: Complete ECDSA Process
 
-使用以下交互式组件来体验密钥生成、签名和验证的完整流程。
-我们使用简化的小数值参数（与上一章有限域示例类似），以便于可视化。
+Use the following interactive component to experience the complete process of key generation, signing, and verification.
+We use simplified small-value parameters (similar to the finite field example in the previous chapter) for easier visualization.
 
 <ECDSADemo />
 
-### secp256k1 真实示例
+### secp256k1 Real-world Example
 
 ```python
 import secrets
 
-# 生成 256 位随机私钥
+# Generate a 256-bit random private key
 private_key = secrets.randbits(256)
-# 确保在有效范围内
+# Ensure it's within the valid range
 n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 private_key = private_key % n
 if private_key == 0:
     private_key = 1
 
-print(f"私钥: {hex(private_key)}")
-# 输出类似: 0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35
+print(f"Private Key: {hex(private_key)}")
+# Output similar to: 0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35
 ```
 
-## 3.3 签名生成
+## 3.3 Signature Generation
 
-### 签名算法步骤
+### Signature Algorithm Steps
 
-给定消息 m 和私钥 d：
+Given message m and private key d:
 
 ```
-1. 计算消息哈希：z = hash(m)
-2. 选择随机数：k ∈ [1, n-1]  (关键！必须真随机)
-3. 计算点：(x₁, y₁) = k × G
-4. 计算 r：r = x₁ mod n  (如果 r = 0，重新选 k)
-5. 计算 s：s = k⁻¹(z + r·d) mod n  (如果 s = 0，重新选 k)
-6. 输出签名：(r, s)
+1. Calculate message hash: z = hash(m)
+2. Select a random number: k ∈ [1, n-1] (Critical! Must be truly random)
+3. Calculate point: (x₁, y₁) = k × G
+4. Calculate r: r = x₁ mod n (If r = 0, choose a new k)
+5. Calculate s: s = k⁻¹(z + r·d) mod n (If s = 0, choose a new k)
+6. Output signature: (r, s)
 ```
 
-### 图解签名过程
+### Signature Process Diagram
 
 ```mermaid
 flowchart TD
-    M[消息 m] --> H[hash]
-    H --> Z[z 消息哈希]
-    K[随机数 k] --> KG["k × G"]
+    M[Message m] --> H[hash]
+    H --> Z[z Message Hash]
+    K[Random Number k] --> KG["k × G"]
     KG --> R["r = x₁"]
     Z --> S["s = k⁻¹(z + rd)"]
-    D[私钥 d] --> S
+    D[Private Key d] --> S
     R --> S
-    R --> SIG["签名 (r, s)"]
+    R --> SIG["Signature (r, s)"]
     S --> SIG
 ```
 
-### 小数值完整示例
+### Small-value Complete Example
 
-（请参考上文的交互式演示进行操作，观察 r 和 s 的计算过程）
+(Please refer to the interactive demo above to observe the calculation process of r and s)
 
-**手算过程示例：**
+**Manual Calculation Example:**
 
-1. z = hash("Hello") = (72+101+108+108+111) % 100 = 500 % 100 = 0 → 用 z = 5
+1. z = hash("Hello") = (72+101+108+108+111) % 100 = 500 % 100 = 0 → Use z = 5
 2. k = 10
-3. k × G = 10 × (5, 1) → 需要计算...
-4. 假设 10G = (7, 11)，则 r = 7
-5. k⁻¹ mod 19：10 × 2 = 20 ≡ 1 (mod 19)，所以 k⁻¹ = 2
+3. k × G = 10 × (5, 1) → Needs calculation...
+4. Assume 10G = (7, 11), then r = 7
+5. k⁻¹ mod 19: 10 × 2 = 20 ≡ 1 (mod 19), so k⁻¹ = 2
 6. s = 2 × (5 + 7 × 7) mod 19 = 2 × 54 mod 19 = 108 mod 19 = 13
 
-**签名：(r=7, s=13)**
+**Signature: (r=7, s=13)**
 
-## 3.4 签名验证
+## 3.4 Signature Verification
 
-### 验证算法步骤
+### Verification Algorithm Steps
 
-给定消息 m、签名 (r, s) 和公钥 Q：
+Given message m, signature (r, s), and public key Q:
 
 ```
-1. 检查 r, s ∈ [1, n-1]
-2. 计算消息哈希：z = hash(m)
-3. 计算：w = s⁻¹ mod n
-4. 计算：u₁ = z·w mod n
-5. 计算：u₂ = r·w mod n
-6. 计算点：P = u₁×G + u₂×Q
-7. 验证：r ≡ P.x (mod n)
+1. Check r, s ∈ [1, n-1]
+2. Calculate message hash: z = hash(m)
+3. Calculate: w = s⁻¹ mod n
+4. Calculate: u₁ = z·w mod n
+5. Calculate: u₂ = r·w mod n
+6. Calculate point: P = u₁×G + u₂×Q
+7. Verify: r ≡ P.x (mod n)
 ```
 
-### 图解验证过程
+### Verification Process Diagram
 
 ```mermaid
 flowchart TD
-    M[消息 m] --> H[hash]
+    M[Message m] --> H[hash]
     H --> Z[z]
-    SIG["签名 (r, s)"] --> W["w = s⁻¹"]
+    SIG["Signature (r, s)"] --> W["w = s⁻¹"]
     Z --> U1["u₁ = z·w"]
     W --> U1
     W --> U2["u₂ = r·w"]
     SIG --> U2
     U1 --> P["P = u₁×G + u₂×Q"]
     U2 --> P
-    Q[公钥 Q] --> P
+    Q[Public Key Q] --> P
     P --> CHECK{"P.x = r ?"}
-    CHECK -->|相等| VALID[✓ 签名有效]
-    CHECK -->|不等| INVALID[✗ 签名无效]
+    CHECK -->|Equal| VALID[✓ Signature Valid]
+    CHECK -->|Not Equal| INVALID[✗ Signature Invalid]
 ```
 
-### 验证演示
+### Verification Demo
 
-（请参考上文的交互式演示进行验证操作）
+(Please refer to the interactive demo above for verification operations)
 
-## 3.5 数学证明：为什么验证能工作？
+## 3.5 Mathematical Proof: Why Verification Works?
 
-### 推导过程
+### Derivation Process
 
-已知签名公式：
+Known signature formula:
 $$
 s = k^{-1}(z + rd) \mod n
 $$
 
-验证时计算：
+Calculation during verification:
 $$
 P = u_1G + u_2Q = (zw)G + (rw)Q
 $$
 
-其中 $w = s^{-1}$，$Q = dG$
+Where $w = s^{-1}$ and $Q = dG$
 
-代入：
+Substitute:
 $$
 P = zwG + rwdG = w(z + rd)G
 $$
 
-由于 $w = s^{-1}$：
+Since $w = s^{-1}$:
 $$
 P = s^{-1}(z + rd)G
 $$
 
-又因为 $s = k^{-1}(z + rd)$，所以 $s^{-1} = k(z + rd)^{-1}$：
+And because $s = k^{-1}(z + rd)$, so $s^{-1} = k(z + rd)^{-1}$：
 $$
 P = k(z + rd)^{-1}(z + rd)G = kG
 $$
 
-**结论**：验证点 P 就是签名时的点 kG，所以 P.x = r ✓
+**Conclusion**: The verification point P is the same as the point kG from signing, so P.x = r ✓
 
-## 3.6 安全性分析
+## 3.6 Security Analysis
 
-### 为什么安全？
+### Why is it secure?
 
-要伪造签名，攻击者需要：
-- 知道私钥 d → **ECDLP 难题**
-- 或者知道随机数 k → **等价于知道私钥**
+To forge a signature, an attacker needs to:
+- Know the private key d → **ECDLP problem**
+- Or know the random number k → **Equivalent to knowing the private key**
 
-### 随机数 k 的重要性
+### Importance of Random Number k
 
-:::danger 严重警告
-**k 必须是真随机的，且每次签名必须不同！**
+:::danger Severe Warning
+**k must be truly random and must be different for every signature!**
 
-如果两次签名使用相同的 k：
-- 两个签名有相同的 r 值
-- 攻击者可以计算出私钥！
+If two signatures use the same k:
+- Both signatures will have the same r value
+- An attacker can calculate the private key!
 :::
 
-### PS3 私钥泄露事件
+### PS3 Private Key Leak Incident
 
-2010年，索尼 PS3 的 ECDSA 实现被破解。
+In 2010, the ECDSA implementation of Sony's PS3 was cracked.
 
-**原因**：索尼对所有签名使用了**相同的 k 值**！
+**Reason**: Sony used the **same k value** for all signatures!
 
-**攻击方法**：
+**Attack Method**:
 
-给定两个签名 $(r, s_1)$ 和 $(r, s_2)$（注意 r 相同！）：
+Given two signatures $(r, s_1)$ and $(r, s_2)$ (note that r is the same!):
 
 $$
 s_1 = k^{-1}(z_1 + rd) \mod n
@@ -214,64 +214,64 @@ $$
 s_2 = k^{-1}(z_2 + rd) \mod n
 $$
 
-相减：
+Subtract:
 $$
 s_1 - s_2 = k^{-1}(z_1 - z_2) \mod n
 $$
 
-解出 k：
+Solve for k:
 $$
 k = \frac{z_1 - z_2}{s_1 - s_2} \mod n
 $$
 
-知道 k 后，从任一签名公式解出 d：
+After knowing k, solve for d from either signature formula:
 $$
 d = \frac{sk - z}{r} \mod n
 $$
 
-**后果**：任何人都可以签署"官方"PS3 固件！
+**Consequence**: Anyone could sign "official" PS3 firmware!
 
 ```python
 def recover_private_key(z1, s1, z2, s2, r, n):
-    """从两个使用相同 k 的签名恢复私钥"""
-    # 计算 k
+    """Recover private key from two signatures using the same k"""
+    # Calculate k
     k = ((z1 - z2) * pow(s1 - s2, -1, n)) % n
     
-    # 计算私钥 d
+    # Calculate private key d
     d = ((s1 * k - z1) * pow(r, -1, n)) % n
     
     return d, k
 
-# 示例
-z1, z2 = 12, 34  # 两条消息的哈希
-s1, s2 = 8, 15   # 两个签名的 s 值
-r = 7            # 相同的 r 值！
+# Example
+z1, z2 = 12, 34  # Hashes of two messages
+s1, s2 = 8, 15   # s values of two signatures
+r = 7            # Same r value!
 n = 19
 
 d, k = recover_private_key(z1, s1, z2, s2, r, n)
-print(f"恢复的私钥: d = {d}")
-print(f"恢复的随机数: k = {k}")
+print(f"Recovered Private Key: d = {d}")
+print(f"Recovered Random Number: k = {k}")
 ```
 
-### 其他安全注意事项
+### Other Security Considerations
 
-| 风险 | 后果 | 防护 |
+| Risk | Consequence | Protection |
 |------|------|------|
-| k 重复使用 | 私钥泄露 | 使用 RFC 6979 确定性 k |
-| k 可预测 | 私钥泄露 | 使用 CSPRNG |
-| 侧信道攻击 | 私钥泄露 | 恒定时间实现 |
-| 哈希碰撞 | 签名伪造 | 使用安全哈希（SHA-256+）|
+| k Reuse | Private key leak | Use RFC 6979 deterministic k |
+| k Predictability | Private key leak | Use CSPRNG |
+| Side-channel attack | Private key leak | Constant-time implementation |
+| Hash collision | Signature forgery | Use secure hashes (SHA-256+) |
 
-## 3.7 完整实现
+## 3.7 Complete Implementation
 
-### Python 完整代码
+### Complete Python Code
 
 ```python
 import hashlib
 import secrets
 
 class ECDSA:
-    """简化的 ECDSA 实现（教学用途）"""
+    """Simplified ECDSA implementation (for educational purposes)"""
     
     def __init__(self, a, b, p, G, n):
         self.a = a
@@ -281,7 +281,7 @@ class ECDSA:
         self.n = n
     
     def point_add(self, P, Q):
-        """椭圆曲线点加法"""
+        """Elliptic curve point addition"""
         if P is None:
             return Q
         if Q is None:
@@ -304,7 +304,7 @@ class ECDSA:
         return (x3, y3)
     
     def scalar_mult(self, k, P):
-        """标量乘法"""
+        """Scalar multiplication"""
         result = None
         addend = P
         
@@ -317,13 +317,13 @@ class ECDSA:
         return result
     
     def generate_keypair(self):
-        """生成密钥对"""
+        """Generate key pair"""
         d = secrets.randbelow(self.n - 1) + 1
         Q = self.scalar_mult(d, self.G)
         return d, Q
     
     def sign(self, message, d):
-        """签名"""
+        """Sign"""
         z = int(hashlib.sha256(message.encode()).hexdigest(), 16) % self.n
         
         while True:
@@ -343,7 +343,7 @@ class ECDSA:
             return (r, s)
     
     def verify(self, message, signature, Q):
-        """验证"""
+        """Verify"""
         r, s = signature
         
         if not (1 <= r < self.n and 1 <= s < self.n):
@@ -365,48 +365,48 @@ class ECDSA:
         return r == P[0] % self.n
 
 
-# 使用示例
+# Usage Example
 if __name__ == "__main__":
-    # 使用小参数进行测试
+    # Test with small parameters
     ecdsa = ECDSA(
         a=2, b=2, p=17,
         G=(5, 1), n=19
     )
     
-    # 生成密钥对
+    # Generate key pair
     private_key, public_key = ecdsa.generate_keypair()
-    print(f"私钥: {private_key}")
-    print(f"公钥: {public_key}")
+    print(f"Private Key: {private_key}")
+    print(f"Public Key: {public_key}")
     
-    # 签名
+    # Sign
     message = "Hello, ECDSA!"
     signature = ecdsa.sign(message, private_key)
-    print(f"签名: {signature}")
+    print(f"Signature: {signature}")
     
-    # 验证
+    # Verify
     is_valid = ecdsa.verify(message, signature, public_key)
-    print(f"验证结果: {is_valid}")
+    print(f"Verification Result: {is_valid}")
     
-    # 篡改消息后验证
+    # Verify after tampering with the message
     is_valid_tampered = ecdsa.verify("Hello, ECDSA?", signature, public_key)
-    print(f"篡改消息验证结果: {is_valid_tampered}")
+    print(f"Tampered Message Verification Result: {is_valid_tampered}")
 ```
 
-## 本章小结
+## Chapter Summary
 
-| 步骤 | 关键操作 |
+| Step | Key Operation |
 |------|----------|
-| **密钥生成** | Q = d × G |
-| **签名** | r = (kG).x, s = k⁻¹(z + rd) |
-| **验证** | P = s⁻¹zG + s⁻¹rQ, 检查 P.x = r |
-| **安全核心** | ECDLP 难题 + 随机数 k |
+| **Key Generation** | Q = d × G |
+| **Signing** | r = (kG).x, s = k⁻¹(z + rd) |
+| **Verification** | P = s⁻¹zG + s⁻¹rQ, check P.x = r |
+| **Security Core** | ECDLP problem + random number k |
 
-## 思考题
+## Review Questions
 
-1. 为什么 r = 0 或 s = 0 时需要重新选择 k？
-2. 如果签名者否认自己签过某条消息，验证者能否证明？
-3. RFC 6979 如何生成确定性的 k？这样安全吗？
+1. Why do we need to choose a new k if r = 0 or s = 0?
+2. If a signer denies signing a message, can the verifier prove they did?
+3. How does RFC 6979 generate a deterministic k? Is it secure?
 
 ---
 
-下一章：[加密货币应用](/docs/cryptography/crypto-applications)
+Next Chapter: [Cryptocurrency Applications](/docs/cryptography/crypto-applications)

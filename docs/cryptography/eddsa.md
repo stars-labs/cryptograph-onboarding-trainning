@@ -4,106 +4,106 @@ sidebar_position: 7
 
 import { EdDSADemo } from '@site/src/components/Interactive';
 
-# 第七章：EdDSA 与 Ed25519
+# Chapter 7: EdDSA and Ed25519
 
-## 🎮 交互式演示
+## 🎮 Interactive Demo
 
-EdDSA 使用独特的扭曲爱德华曲线（Twisted Edwards Curve）和确定性签名机制。
-动手试一试：
+EdDSA uses unique Twisted Edwards Curves and a deterministic signature mechanism.
+Try it out:
 
 <EdDSADemo />
 
 ---
 
-EdDSA (Edwards-curve Digital Signature Algorithm) 是一种基于扭曲爱德华曲线的签名算法，Ed25519 是其最流行的实现。Solana、Cardano、Polkadot 等区块链使用 Ed25519。
+EdDSA (Edwards-curve Digital Signature Algorithm) is a signature algorithm based on Twisted Edwards Curves, with Ed25519 being its most popular implementation. Solana, Cardano, Polkadot, and other blockchains use Ed25519.
 
-## 6.1 EdDSA 概述
+## 6.1 EdDSA Overview
 
-### 使用 EdDSA 的项目
+### Projects using EdDSA
 
-| 项目 | 曲线 | 用途 |
+| Project | Curve | Usage |
 |------|------|------|
-| Solana | Ed25519 | 交易签名 |
-| Cardano | Ed25519 | 交易签名 |
-| Polkadot | Ed25519/Sr25519 | 账户签名 |
-| Monero | Ed25519 | 环签名基础 |
-| NEAR | Ed25519 | 账户签名 |
-| SSH | Ed25519 | 身份认证 |
-| Signal | Ed25519 | 消息签名 |
+| Solana | Ed25519 | Transaction signatures |
+| Cardano | Ed25519 | Transaction signatures |
+| Polkadot | Ed25519/Sr25519 | Account signatures |
+| Monero | Ed25519 | Ring signature base |
+| NEAR | Ed25519 | Account signatures |
+| SSH | Ed25519 | Identity authentication |
+| Signal | Ed25519 | Message signatures |
 
 ### EdDSA vs ECDSA vs Schnorr
 
-| 特性 | ECDSA | Schnorr | EdDSA |
+| Feature | ECDSA | Schnorr | EdDSA |
 |------|-------|---------|-------|
-| 曲线类型 | Weierstrass | Weierstrass | Edwards |
-| 随机数 | 每次签名需要 | 每次签名需要 | **确定性生成** |
-| 签名大小 | 64-72 字节 | 64 字节 | 64 字节 |
-| 验证速度 | 较慢 | 快 | **最快** |
-| 实现复杂度 | 复杂 | 中等 | 简单 |
+| Curve Type | Weierstrass | Weierstrass | Edwards |
+| Random Number | Required for each signature | Required for each signature | **Deterministic generation** |
+| Signature Size | 64-72 bytes | 64 bytes | 64 bytes |
+| Verification Speed | Slower | Fast | **Fastest** |
+| Implementation Complexity | Complex | Medium | Simple |
 
-## 6.2 爱德华曲线
+## 6.2 Edwards Curves
 
-### 为什么不用 Weierstrass 曲线？
+### Why not use Weierstrass curves?
 
-爱德华曲线有独特优势：
-1. **完备的加法公式**：不需要处理特殊情况
-2. **更快的运算**：点加法只需一个公式
-3. **天然抗侧信道攻击**
+Edwards curves have unique advantages:
+1. **Complete addition formulas**: No need to handle special cases.
+2. **Faster operations**: Point addition requires only one formula.
+3. **Natural resistance to side-channel attacks**.
 
-### 扭曲爱德华曲线方程
+### Twisted Edwards Curve Equation
 
 ```
 ax² + y² = 1 + dx²y²
 ```
 
-其中 `a` 和 `d` 是曲线参数。
+Where `a` and `d` are curve parameters.
 
-### Curve25519 参数
+### Curve25519 Parameters
 
-Ed25519 使用的曲线：
+The curve used by Ed25519:
 
 ```
 -x² + y² = 1 - (121665/121666)x²y²
 
-等价于: a = -1, d = -121665/121666
+Equivalent to: a = -1, d = -121665/121666
 
-素数 p = 2²⁵⁵ - 19
-曲线阶 n = 2²⁵² + 27742317777372353535851937790883648493
+Prime p = 2²⁵⁵ - 19
+Curve order n = 2²⁵² + 27742317777372353535851937790883648493
 ```
 
-### 基点
+### Base Point
 
 ```python
-# Curve25519 基点 (压缩形式)
-By = 4 * pow(5, -1, p) % p  # y 坐标
+# Curve25519 base point (compressed form)
+By = 4 * pow(5, -1, p) % p  # y coordinate
 # y = 0x6666666666666666666666666666666666666666666666666666666666666658
 ```
 
-## 6.3 Ed25519 签名流程
+## 6.3 Ed25519 Signature Process
 
-### 密钥生成
+### Key Generation
 
-与 ECDSA/Schnorr 不同，Ed25519 从种子派生密钥：
+Unlike ECDSA/Schnorr, Ed25519 derives keys from a seed:
 
 ```python
 import hashlib
 
 def ed25519_keygen(seed):
-    """从 32 字节种子生成密钥对"""
-    # 对种子做 SHA-512 哈希
+    """Generate key pair from 32-byte seed"""
+    # SHA-512 hash of the seed
     h = hashlib.sha512(seed).digest()
     
-    # 前 32 字节作为私钥标量
+    # First 32 bytes as private key scalar
     a = int.from_bytes(h[:32], 'little')
-    # 清除和设置特定位 (clamping)
-    a &= ~7  # 清除最低 3 位
-    a &= ~(128 << 248)  # 清除最高位
-    a |= 64 << 248  # 设置次高位
+    # Clear and set specific bits (clamping)
+    a &= ~7  # Clear lowest 3 bits
+    a &= ~(128 << 248)  # Clear highest bit
+    a |= 64 << 248  # Set second highest bit
     
-    # 后 32 字节作为签名时的随机源
+    # Last 32 bytes as random source for signing
     prefix = h[32:]
     
-    # 公钥 = a × G
+    # Public key = a × G
     A = scalar_mult(a, G)
     
     return {
@@ -113,21 +113,21 @@ def ed25519_keygen(seed):
     }
 ```
 
-### 签名生成
+### Signature Generation
 
-**确定性签名** —— 不需要额外的随机数！
+**Deterministic Signature** — no extra random number needed!
 
 ```python
 def ed25519_sign(message, private_key, public_key, prefix):
-    """Ed25519 签名"""
-    # 1. 确定性生成 r
+    """Ed25519 signature"""
+    # 1. Deterministically generate r
     r = hashlib.sha512(prefix + message).digest()
     r = int.from_bytes(r, 'little') % n
     
     # 2. R = r × G
     R = scalar_mult(r, G)
     
-    # 3. 计算挑战
+    # 3. Calculate challenge
     R_bytes = point_to_bytes(R)
     A_bytes = point_to_bytes(public_key)
     k = hashlib.sha512(R_bytes + A_bytes + message).digest()
@@ -136,87 +136,87 @@ def ed25519_sign(message, private_key, public_key, prefix):
     # 4. s = r + k × a (mod n)
     s = (r + k * private_key) % n
     
-    # 5. 返回签名 (R, s)
+    # 5. Return signature (R, s)
     return R_bytes + s.to_bytes(32, 'little')
 ```
 
-### 签名验证
+### Signature Verification
 
 ```python
 def ed25519_verify(message, signature, public_key):
-    """Ed25519 验证"""
-    # 解析签名
+    """Ed25519 verification"""
+    # Parse signature
     R = bytes_to_point(signature[:32])
     s = int.from_bytes(signature[32:], 'little')
     
-    # 检查 s 范围
+    # Check s range
     if s >= n:
         return False
     
-    # 计算挑战
+    # Calculate challenge
     R_bytes = signature[:32]
     A_bytes = point_to_bytes(public_key)
     k = hashlib.sha512(R_bytes + A_bytes + message).digest()
     k = int.from_bytes(k, 'little') % n
     
-    # 验证: s × G == R + k × A
+    # Verify: s × G == R + k × A
     left = scalar_mult(s, G)
     right = point_add(R, scalar_mult(k, public_key))
     
     return left == right
 ```
 
-## 6.4 为什么 Ed25519 更安全？
+## 6.4 Why is Ed25519 more secure?
 
-### 确定性签名
-
-```
-ECDSA: 签名 = f(消息, 私钥, 随机数k)  // k 泄露 = 私钥泄露
-EdDSA: 签名 = f(消息, 私钥)           // 无需外部随机数！
-```
-
-随机数 r 由 `Hash(prefix || message)` 确定性生成，相同消息产生相同签名。
-
-### 不存在 k 重复问题
-
-回顾 PS3 泄露事件：ECDSA 使用相同的 k 导致私钥泄露。
-
-Ed25519 **从根本上消除了这个风险**。
-
-### 抗侧信道攻击
-
-Edwards 曲线的完备加法公式：
+### Deterministic Signature
 
 ```
-# Weierstrass 曲线点加法需要判断多种情况
+ECDSA: Signature = f(message, private key, random number k)  // k leak = private key leak
+EdDSA: Signature = f(message, private key)                   // No external random number needed!
+```
+
+The random number r is deterministically generated by `Hash(prefix || message)`, so the same message produces the same signature.
+
+### No k repetition problem
+
+Recall the PS3 leak event: ECDSA used the same k, leading to private key leakage.
+
+Ed25519 **fundamentally eliminates this risk**.
+
+### Resistance to side-channel attacks
+
+Edwards curve's complete addition formula:
+
+```
+# Weierstrass curve point addition needs to judge multiple cases
 if P == Q:
-    # 点倍乘公式
+    # Point doubling formula
 elif P == -Q:
-    # 返回无穷远点
+    # Return point at infinity
 else:
-    # 普通点加法
+    # Normal point addition
 
-# Edwards 曲线只需一个公式！
+# Edwards curve only needs one formula!
 x3 = (x1*y2 + x2*y1) / (1 + d*x1*x2*y1*y2)
 y3 = (y1*y2 - a*x1*x2) / (1 - d*x1*x2*y1*y2)
 ```
 
-没有条件分支 = 抗定时攻击。
+No conditional branches = resistance to timing attacks.
 
-## 6.5 Solana 中的 Ed25519
+## 6.5 Ed25519 in Solana
 
-### 交易签名
+### Transaction Signature
 
 ```javascript
-// 使用 @solana/web3.js
+// Using @solana/web3.js
 const { Keypair, Transaction, SystemProgram } = require('@solana/web3.js');
 
-// 生成密钥对
+// Generate key pair
 const keypair = Keypair.generate();
-console.log('公钥:', keypair.publicKey.toBase58());
-// 输出: HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH
+console.log('Public Key:', keypair.publicKey.toBase58());
+// Output: HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH
 
-// 创建交易
+// Create transaction
 const transaction = new Transaction().add(
   SystemProgram.transfer({
     fromPubkey: keypair.publicKey,
@@ -225,59 +225,59 @@ const transaction = new Transaction().add(
   })
 );
 
-// 签名（内部使用 Ed25519）
+// Sign (internally uses Ed25519)
 transaction.sign(keypair);
 ```
 
-### 验证签名
+### Verify Signature
 
 ```javascript
 const nacl = require('tweetnacl');
 
-// 手动验证
+// Manual verification
 const message = Buffer.from('Hello Solana');
 const signature = nacl.sign.detached(message, keypair.secretKey);
 const isValid = nacl.sign.detached.verify(message, signature, keypair.publicKey.toBytes());
-console.log('签名有效:', isValid);
+console.log('Signature valid:', isValid);
 ```
 
 ## 6.6 Ed25519 vs secp256k1
 
-### 性能对比
+### Performance Comparison
 
-| 操作 | secp256k1 (ECDSA) | Ed25519 |
+| Operation | secp256k1 (ECDSA) | Ed25519 |
 |------|-------------------|---------|
-| 密钥生成 | ~50 μs | ~30 μs |
-| 签名 | ~50 μs | ~70 μs |
-| 验证 | ~100 μs | ~120 μs |
-| 批量验证 (1000) | 100 ms | 30 ms |
+| Key Generation | ~50 μs | ~30 μs |
+| Signature | ~50 μs | ~70 μs |
+| Verification | ~100 μs | ~120 μs |
+| Batch Verification (1000) | 100 ms | 30 ms |
 
-Ed25519 批量验证显著更快。
+Ed25519 batch verification is significantly faster.
 
-### 安全强度
+### Security Strength
 
-两者都提供约 128 位安全强度：
-- secp256k1: 256 位曲线
-- Ed25519: 255 位曲线
+Both provide about 128-bit security strength:
+- secp256k1: 256-bit curve
+- Ed25519: 255-bit curve
 
 ## 6.7 Sr25519 (Schnorr on Ristretto25519)
 
-Polkadot 使用的变体：
+The variant used by Polkadot:
 
 ```
 Ed25519 → Sr25519
        ↑
-  添加 VRF + Schnorr 特性
+  Add VRF + Schnorr features
 ```
 
-### 优势
+### Advantages
 
-- 支持可验证随机函数 (VRF)
-- 更好的多签支持
-- 层次派生密钥
+- Supports Verifiable Random Function (VRF)
+- Better multi-sig support
+- Hierarchical derivation keys
 
 ```rust
-// Substrate/Polkadot 代码
+// Substrate/Polkadot code
 use sp_core::sr25519::{Pair, Public, Signature};
 
 let (pair, _, _) = Pair::generate_with_phrase(None);
@@ -287,18 +287,18 @@ let signature = pair.sign(message);
 assert!(Pair::verify(&signature, message, &pair.public()));
 ```
 
-## 6.8 Python 完整实现
+## 6.8 Python Full Implementation
 
 ```python
 import hashlib
 import secrets
 
-# Curve25519 参数
+# Curve25519 parameters
 p = 2**255 - 19
 d = -121665 * pow(121666, -1, p) % p
 n = 2**252 + 27742317777372353535851937790883648493
 
-# 基点 (只展示 y 坐标的压缩形式)
+# Base point (only showing compressed form of y coordinate)
 By = 4 * pow(5, -1, p) % p
 
 class Ed25519:
@@ -306,15 +306,15 @@ class Ed25519:
         self.p = p
         self.d = d
         self.n = n
-        # 实际实现需要完整的基点坐标
-        # 这里简化处理
+        # Actual implementation requires full base point coordinates
+        # Simplified here
     
     def generate_keypair(self):
-        """生成密钥对"""
+        """Generate key pair"""
         seed = secrets.token_bytes(32)
         h = hashlib.sha512(seed).digest()
         
-        # 私钥处理 (clamping)
+        # Private key processing (clamping)
         a = bytearray(h[:32])
         a[0] &= 248
         a[31] &= 127
@@ -323,8 +323,8 @@ class Ed25519:
         
         prefix = h[32:]
         
-        # 公钥 = private_scalar × G
-        # (需要完整的标量乘法实现)
+        # Public key = private_scalar × G
+        # (Requires full scalar multiplication implementation)
         public_key = self._scalar_mult(private_scalar)
         
         return {
@@ -335,7 +335,7 @@ class Ed25519:
         }
     
     def sign(self, message, keypair):
-        """签名消息"""
+        """Sign message"""
         prefix = keypair['prefix']
         private = keypair['private']
         public = keypair['public']
@@ -361,7 +361,7 @@ class Ed25519:
         return self._point_to_bytes(R) + s.to_bytes(32, 'little')
     
     def verify(self, message, signature, public_key):
-        """验证签名"""
+        """Verify signature"""
         if len(signature) != 64:
             return False
         
@@ -379,59 +379,59 @@ class Ed25519:
         ).digest()
         k = int.from_bytes(k_hash, 'little') % self.n
         
-        # 验证 s × G == R + k × A
+        # Verify s × G == R + k × A
         left = self._scalar_mult(s)
         right = self._point_add(R, self._scalar_mult_point(k, public_key))
         
         return left == right
     
     def _scalar_mult(self, k):
-        """标量乘法 k × G"""
-        # 简化实现，实际需要完整的 Edwards 曲线运算
+        """Scalar multiplication k × G"""
+        # Simplified implementation, actual requires full Edwards curve operations
         pass
     
     def _point_add(self, P, Q):
-        """Edwards 曲线点加法"""
+        """Edwards curve point addition"""
         # (x1, y1) + (x2, y2) = (x3, y3)
         # x3 = (x1*y2 + x2*y1) / (1 + d*x1*x2*y1*y2)
         # y3 = (y1*y2 + x1*x2) / (1 - d*x1*x2*y1*y2)
         pass
     
     def _point_to_bytes(self, point):
-        """点压缩"""
+        """Point compression"""
         pass
     
     def _bytes_to_point(self, data):
-        """点解压"""
+        """Point decompression"""
         pass
 
 
-# 使用示例
+# Usage example
 if __name__ == "__main__":
     ed = Ed25519()
     keypair = ed.generate_keypair()
-    print(f"公钥: {keypair['public']}")
+    print(f"Public Key: {keypair['public']}")
     
     message = b"Hello Ed25519!"
     # signature = ed.sign(message, keypair)
     # is_valid = ed.verify(message, signature, keypair['public'])
 ```
 
-## 本章小结
+## Chapter Summary
 
-| 特性 | Ed25519 优势 |
+| Feature | Ed25519 Advantage |
 |------|-------------|
-| 确定性签名 | 无需外部随机数，消除 k 重复风险 |
-| 速度 | 批量验证极快 |
-| 安全性 | 抗侧信道攻击 |
-| 简洁性 | 完备的加法公式 |
+| Deterministic Signature | No external random number needed, eliminates k repetition risk |
+| Speed | Batch verification is extremely fast |
+| Security | Resistance to side-channel attacks |
+| Simplicity | Complete addition formulas |
 
-## 思考题
+## Thinking Questions
 
-1. 为什么 Ed25519 使用确定性 nonce 更安全？
-2. Edwards 曲线和 Weierstrass 曲线如何转换？
-3. Solana 为什么选择 Ed25519 而不是 secp256k1？
+1. Why is Ed25519 safer using a deterministic nonce?
+2. How to convert between Edwards curves and Weierstrass curves?
+3. Why did Solana choose Ed25519 instead of secp256k1?
 
 ---
 
-下一章：[BLS 签名与聚合](/docs/cryptography/bls)
+Next Chapter: [BLS Signature and Aggregation](/docs/cryptography/bls)

@@ -4,96 +4,96 @@ sidebar_position: 3
 
 import { EllipticCurveDemo, ECIESDemo } from '@site/src/components/Interactive';
 
-# 第三章：椭圆曲线入门
+# Chapter 3: Introduction to Elliptic Curves
 
-椭圆曲线是 ECDSA 的数学基础。本章将通过可视化和小数值示例，帮助你直观理解椭圆曲线密码学。
+Elliptic curves are the mathematical foundation of ECDSA. This chapter uses visualizations and small-value examples to help you intuitively understand elliptic curve cryptography.
 
 <EllipticCurveDemo />
 
-## 2.1 椭圆曲线方程
+## 2.1 Elliptic Curve Equation
 
-### 标准形式（Weierstrass 方程）
+### Standard Form (Weierstrass Equation)
 
 ```
 y² = x³ + ax + b
 ```
 
-其中 `a` 和 `b` 是曲线参数，需满足 `4a³ + 27b² ≠ 0`（确保曲线光滑）。
+Where `a` and `b` are curve parameters that must satisfy $4a³ + 27b² ≠ 0$ (to ensure the curve is smooth).
 
-### 交互式可视化
+### Interactive Visualization
 
-使用上方的「实数域曲线」tab，拖动滑块观察参数变化如何影响曲线形状。
+Use the "Real Field Curve" tab above and drag the sliders to observe how parameter changes affect the curve's shape.
 
-:::tip 试试这些值
-- `a = -3, b = 5`：比较圆润的曲线
-- `a = 0, b = 7`：比特币使用的 secp256k1 曲线形状
-- `a = -4, b = 0`：y² = x³ - 4x
+:::tip Try these values
+- `a = -3, b = 5`: A relatively rounded curve
+- `a = 0, b = 7`: The shape of the secp256k1 curve used by Bitcoin
+- `a = -4, b = 0`: y² = x³ - 4x
 :::
 
-### 曲线的关键特性
+### Key Characteristics of the Curve
 
-1. **关于 X 轴对称**：如果 (x, y) 在曲线上，则 (x, -y) 也在
-2. **无穷远点 O**：作为单位元（后面会解释）
-3. **每条垂直线**：与曲线最多相交于 2 点
+1. **Symmetric about the X-axis**: If (x, y) is on the curve, then (x, -y) is also on the curve
+2. **Point at Infinity O**: Acts as the identity element (explained later)
+3. **Vertical Lines**: Intersect the curve at most at 2 points
 
-## 2.2 有限域上的椭圆曲线
+## 2.2 Elliptic Curves over Finite Fields
 
-### 为什么需要有限域？
+### Why Do We Need Finite Fields?
 
-在实数上的椭圆曲线是连续的，无法直接用于密码学。我们需要**离散化**——使用模运算。
+Elliptic curves over real numbers are continuous and cannot be used directly for cryptography. We need **discretization** using modular arithmetic.
 
 ```
 y² ≡ x³ + ax + b (mod p)
 ```
 
-其中 `p` 是一个大素数。
+Where `p` is a large prime number.
 
-### 小数值示例
+### Small-Value Example
 
-让我们用一个小素数 `p = 17` 来理解：
+Let's use a small prime `p = 17` to understand:
 
-曲线方程：`y² ≡ x³ + 2x + 2 (mod 17)`
+Curve Equation: `y² ≡ x³ + 2x + 2 (mod 17)`
 
-| x | x³ + 2x + 2 | mod 17 | √ (mod 17) | 点 |
+| x | x³ + 2x + 2 | mod 17 | √ (mod 17) | Points |
 |---|-------------|--------|------------|-----|
-| 0 | 2 | 2 | 无 | - |
-| 1 | 5 | 5 | 无 | - |
-| 2 | 14 | 14 | 无 | - |
+| 0 | 2 | 2 | None | - |
+| 1 | 5 | 5 | None | - |
+| 2 | 14 | 14 | None | - |
 | 3 | 35 | 1 | ±1 | (3, 1), (3, 16) |
-| 4 | 74 | 6 | 无 | - |
+| 4 | 74 | 6 | None | - |
 | 5 | 137 | 1 | ±1 | (5, 1), (5, 16) |
 | 6 | 230 | 9 | ±3 | (6, 3), (6, 14) |
-| 7 | 359 | 2 | 无 | - |
+| 7 | 359 | 2 | None | - |
 
-### 有限域椭圆曲线可视化
+### Finite Field Elliptic Curve Visualization
 
-使用上方的「有限域曲线」tab 进行可视化探索。
+Use the "Finite Field Curve" tab above for interactive exploration.
 
-:::info 观察
-- 点分布看起来很"随机"
-- 仍然关于某条"水平线"对称（y = p/2 附近）
-- 点的数量是有限的
+:::info Observations
+- The point distribution looks "random"
+- It is still symmetric about a "horizontal line" (near y = p/2)
+- The number of points is finite
 :::
 
-## 2.3 点加法（Point Addition）
+## 2.3 Point Addition
 
-椭圆曲线上定义了一种特殊的"加法"运算。
+A special "addition" operation is defined on elliptic curves.
 
-### 几何定义（实数域）
+### Geometric Definition (Real Field)
 
-给定两点 P 和 Q，如何计算 P + Q？
+Given two points P and Q, how do we calculate P + Q?
 
-1. 过 P 和 Q 画一条直线
-2. 该直线与曲线相交于第三点 R
-3. **P + Q = R 关于 X 轴的对称点**
+1. Draw a line through P and Q
+2. This line intersects the curve at a third point R
+3. **P + Q = the reflection of R across the X-axis**
 
-使用上方的「点加法」tab 进行交互式计算。
+Use the "Point Addition" tab above for interactive calculations.
 
-### 代数公式
+### Algebraic Formulas
 
-对于 P = (x₁, y₁) 和 Q = (x₂, y₂)：
+For P = (x₁, y₁) and Q = (x₂, y₂):
 
-**当 P ≠ Q 时：**
+**When P ≠ Q:**
 
 ```
 λ = (y₂ - y₁) / (x₂ - x₁)
@@ -101,55 +101,55 @@ x₃ = λ² - x₁ - x₂
 y₃ = λ(x₁ - x₃) - y₁
 ```
 
-### 手算示例
+### Manual Example
 
-曲线：`y² = x³ - 4x`
+Curve: `y² = x³ - 4x`
 
 P = (-2, 0), Q = (2, 0)
 
-由于 y₁ = y₂ = 0，直线是水平的...这是特殊情况，P + Q = O（无穷远点）。
+Since y₁ = y₂ = 0, the line is horizontal... this is a special case where P + Q = O (the point at infinity).
 
-## 2.4 有限域上的点加法
+## 2.4 Point Addition over Finite Fields
 
-### 示例：p = 17, 曲线 y² ≡ x³ + 2x + 2 (mod 17)
+### Example: p = 17, Curve y² ≡ x³ + 2x + 2 (mod 17)
 
-已知点：
-- P = (5, 1)：验证 1² = 1, 5³ + 10 + 2 = 137 ≡ 1 (mod 17) ✓
-- Q = (6, 3)：验证 3² = 9, 6³ + 12 + 2 = 230 ≡ 9 (mod 17) ✓
+Known points:
+- P = (5, 1): Verify 1² = 1, 5³ + 10 + 2 = 137 ≡ 1 (mod 17) ✓
+- Q = (6, 3): Verify 3² = 9, 6³ + 12 + 2 = 230 ≡ 9 (mod 17) ✓
 
-**计算 P + Q：**
+**Calculate P + Q:**
 
-Step 1：计算斜率 λ
+Step 1: Calculate the slope λ
 
 ```
 λ = (3 - 1) / (6 - 5) = 2 / 1 = 2
 ```
 
-Step 2：计算 x₃
+Step 2: Calculate x₃
 
 ```
 x₃ = 2² - 5 - 6 = 4 - 11 = -7 ≡ 10 (mod 17)
 ```
 
-Step 3：计算 y₃
+Step 3: Calculate y₃
 
 ```
 y₃ = 2(5 - 10) - 1 = -10 - 1 = -11 ≡ 6 (mod 17)
 ```
 
-**结果：P + Q = (10, 6)**
+**Result: P + Q = (10, 6)**
 
-验证：6² = 36 ≡ 2, 10³ + 20 + 2 = 1022 ≡ 2 (mod 17) ✓
+Verification: 6² = 36 ≡ 2, 10³ + 20 + 2 = 1022 ≡ 2 (mod 17) ✓
 
-## 2.5 点倍乘（Point Doubling）
+## 2.5 Point Doubling
 
-当 P = Q 时，我们需要计算 P + P = 2P。
+When P = Q, we need to calculate P + P = 2P.
 
-### 几何定义
+### Geometric Definition
 
-过点 P 做曲线的**切线**，与曲线相交于另一点 R，2P = R 的对称点。
+Draw a **tangent line** to the curve at point P. It intersects the curve at another point R. 2P is the reflection of R.
 
-### 代数公式
+### Algebraic Formulas
 
 ```
 λ = (3x₁² + a) / (2y₁)
@@ -157,70 +157,70 @@ x₃ = λ² - 2x₁
 y₃ = λ(x₁ - x₃) - y₁
 ```
 
-### 手算示例
+### Manual Example
 
-继续使用：p = 17, 曲线 y² ≡ x³ + 2x + 2 (mod 17), P = (5, 1)
+Continuing with: p = 17, Curve y² ≡ x³ + 2x + 2 (mod 17), P = (5, 1)
 
-**计算 2P：**
+**Calculate 2P:**
 
-Step 1：计算斜率
+Step 1: Calculate the slope
 
 ```
 λ = (3 × 25 + 2) / (2 × 1) = 77 / 2
 ```
 
-需要计算 77 mod 17 = 9，以及 2 的模逆元。
+We need to calculate 77 mod 17 = 9, and the modular inverse of 2.
 
-2⁻¹ mod 17 = 9（因为 2 × 9 = 18 ≡ 1 mod 17）
+2⁻¹ mod 17 = 9 (since 2 × 9 = 18 ≡ 1 mod 17)
 
 ```
 λ = 9 × 9 = 81 ≡ 13 (mod 17)
 ```
 
-Step 2：计算 x₃
+Step 2: Calculate x₃
 
 ```
 x₃ = 13² - 10 = 169 - 10 = 159 ≡ 6 (mod 17)
 ```
 
-Step 3：计算 y₃
+Step 3: Calculate y₃
 
 ```
 y₃ = 13(5 - 6) - 1 = -13 - 1 = -14 ≡ 3 (mod 17)
 ```
 
-**结果：2P = (6, 3)**
+**Result: 2P = (6, 3)**
 
-有趣的是，这正是我们之前的点 Q！
+Interestingly, this is exactly our previous point Q!
 
-## 2.6 标量乘法（Scalar Multiplication）
+## 2.6 Scalar Multiplication
 
-**核心操作**：k × P = P + P + ... + P（k 次）
+**Core Operation**: k × P = P + P + ... + P (k times)
 
-这是 ECDSA 的核心——用私钥（标量 k）乘以基点 G 得到公钥。
+This is the heart of ECDSA, multiplying a base point G by a private key (scalar k) to get the public key.
 
-### 快速计算：倍加法（Double-and-Add）
+### Fast Calculation: Double-and-Add
 
-直接做 k 次加法太慢。使用二进制展开：
+Performing k additions directly is too slow. We use binary expansion:
 
 ```
-例：计算 21P
+Example: Calculate 21P
 
-21 的二进制 = 10101
+Binary of 21 = 10101
 
 21P = 16P + 4P + P
     = 2(8P) + 2(2P) + P
     = 2(2(4P)) + 2(2P) + P
     = 2(2(2(2P))) + 2(2P) + P
 
-只需要 4 次倍乘 + 2 次加法，而不是 20 次加法！
+Only 4 doublings + 2 additions are needed, instead of 20 additions!
 ```
 
-### Python 实现
+### Python Implementation
 
 ```python
 def point_add(P, Q, a, p):
-    """椭圆曲线点加法"""
+    """Elliptic curve point addition"""
     if P is None:
         return Q
     if Q is None:
@@ -233,10 +233,10 @@ def point_add(P, Q, a, p):
         return None  # P + (-P) = O
     
     if P == Q:
-        # 点倍乘
+        # Point doubling
         lam = (3 * x1 * x1 + a) * pow(2 * y1, -1, p) % p
     else:
-        # 点加法
+        # Point addition
         lam = (y2 - y1) * pow(x2 - x1, -1, p) % p
     
     x3 = (lam * lam - x1 - x2) % p
@@ -245,8 +245,8 @@ def point_add(P, Q, a, p):
     return (x3, y3)
 
 def scalar_mult(k, P, a, p):
-    """标量乘法：k × P"""
-    result = None  # 无穷远点
+    """Scalar multiplication: k × P"""
+    result = None  # Point at infinity
     addend = P
     
     while k:
@@ -257,7 +257,7 @@ def scalar_mult(k, P, a, p):
     
     return result
 
-# 测试
+# Test
 p = 17
 a = 2
 P = (5, 1)
@@ -268,86 +268,86 @@ print(f"3P = {scalar_mult(3, P, a, p)}")
 print(f"21P = {scalar_mult(21, P, a, p)}")
 ```
 
-## 2.7 椭圆曲线加密解密（简化 ECIES）
+## 2.7 Elliptic Curve Encryption and Decryption (Simplified ECIES)
 
-RSA 讲了加密解密，椭圆曲线也有对应方案，最常见的是 **ECIES**。  
-这里用“玩具版”的小数值演示，帮你看懂完整流程（真实 ECIES 会加上哈希与对称加密）。
+While RSA has its encryption scheme, elliptic curves have **ECIES**.  
+Here is a "toy version" using small values to help you understand the full process (real ECIES adds hashing and symmetric encryption).
 
-### 小学生版故事
+### A Simple Analogy
 
-把椭圆曲线想成一个“只有懂数学的人才能走的迷宫”：
+Think of an elliptic curve as a "maze that only mathematicians can navigate":
 
-- **B** 是公开的起点（大家都知道）
-- **d** 是你的秘密步数（私钥）
-- **Q = d×B** 是你走完后的终点（公钥）
+- **B** is the public starting point (everyone knows it)
+- **d** is your secret number of steps (private key)
+- **Q = d×B** is your destination after walking (public key)
 
-**加密** 就像送一封信：
-- 发送者随便选一个新步数 **k**
-- 走到 **R = k×B**，把 R 当成“回信地址”
-- 同时计算共享点 **S = k×Q**（只有你和发送者能算出来）
-- 用 S 的 x 坐标当“钥匙”，把明文锁起来
+**Encryption** is like sending a letter:
+- The sender picks a random new number of steps **k**
+- They walk to **R = k×B** and treat R as the "return address"
+- Simultaneously, they calculate a shared point **S = k×Q** (only you and the sender can calculate this)
+- They use the x-coordinate of S as a "key" to lock the plaintext
 
-**解密** 就像你拿钥匙开锁：
-- 你用私钥 **d** 计算 **S' = d×R**
-- S' 和 S 是同一个点
-- 所以能用同一把钥匙把明文还原
+**Decryption** is like using your key to open the lock:
+- You use your private key **d** to calculate **S' = d×R**
+- S' and S are the same point
+- Therefore, you can use the same key to restore the plaintext
 
-一句话：**发送者和接收者都能算出同一个秘密点，但旁观者算不出来。**
+In short: **The sender and receiver can both calculate the same secret point, but an onlooker cannot.**
 
 <ECIESDemo />
 
-## 2.8 单向陷门函数
+## 2.8 One-Way Trapdoor Function
 
-### 核心安全性
+### Core Security
 
-给定：
-- 基点 G
-- 公钥 Q = k × G
+Given:
+- Base point G
+- Public key Q = k × G
 
-**问题**：已知 G 和 Q，能否求出 k？
+**Problem**: Known G and Q, can you find k?
 
-这就是**椭圆曲线离散对数问题（ECDLP）**。
+This is the **Elliptic Curve Discrete Logarithm Problem (ECDLP)**.
 
-### 为什么很难？
+### Why Is It Hard?
 
-- 没有"除法"：不能计算 Q ÷ G
-- 不知道"路径"：从 G 到 Q 经过了多少次加法？
+- No "division": You cannot calculate Q ÷ G
+- No "path": You don't know how many additions were performed from G to Q
 
-:::danger 安全性来源
-目前没有已知的多项式时间算法能解决 ECDLP。
-最好的攻击（Pollard's rho）需要约 √n 次运算。
+:::danger Source of Security
+There is currently no known polynomial-time algorithm to solve the ECDLP.
+The best attack (Pollard's rho) requires approximately √n operations.
 
-对于 secp256k1（n ≈ 2²⁵⁶），需要约 2¹²⁸ 次运算——不可行。
+For secp256k1 (n ≈ 2²⁵⁶), this requires about 2¹²⁸ operations, which is infeasible.
 :::
 
-### 形象比喻
+### A Visual Metaphor
 
-想象一个巨大的时钟（比如有 2²⁵⁶ 个刻度）：
-- 你在某个位置 G
-- 顺时针走了 k 步到达 Q
-- 别人看到 G 和 Q，但不知道你走了多少步
+Imagine a giant clock (with, say, 2²⁵⁶ ticks):
+- You are at some position G
+- You walk k steps clockwise to reach Q
+- Others see G and Q, but they don't know how many steps you took
 
-## 2.9 secp256k1 曲线参数
+## 2.9 secp256k1 Curve Parameters
 
-比特币和以太坊使用的标准曲线：
+The standard curve used by Bitcoin and Ethereum:
 
 ```
 y² = x³ + 7 (mod p)
 ```
 
-### 参数值
+### Parameter Values
 
-| 参数 | 值 | 说明 |
+| Parameter | Value | Description |
 |------|-----|------|
-| a | 0 | 曲线参数 |
-| b | 7 | 曲线参数 |
-| p | 2²⁵⁶ - 2³² - 977 | 有限域大小 |
-| n | 约 2²⁵⁶ | 曲线阶（点的数量） |
-| Gₓ | 0x79BE667E... | 基点 x 坐标 |
-| Gᵧ | 0x483ADA77... | 基点 y 坐标 |
+| a | 0 | Curve parameter |
+| b | 7 | Curve parameter |
+| p | 2²⁵⁶ - 2³² - 977 | Finite field size |
+| n | ~ 2²⁵⁶ | Curve order (number of points) |
+| Gₓ | 0x79BE667E... | Base point x-coordinate |
+| Gᵧ | 0x483ADA77... | Base point y-coordinate |
 
 ```python
-# secp256k1 完整参数
+# Full secp256k1 parameters
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 a = 0
@@ -356,27 +356,27 @@ Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
 Gy = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
 ```
 
-## 本章小结
+## Chapter Summary
 
-| 概念 | 要点 |
+| Concept | Key Points |
 |------|------|
-| 椭圆曲线 | y² = x³ + ax + b |
-| 有限域 | 使用模运算离散化 |
-| 点加法 | 几何：过两点的直线与曲线交点的对称点 |
-| 标量乘法 | k × P，使用倍加法高效计算 |
-| ECDLP | 从 Q 和 G 无法反推 k |
-| ECIES | 椭圆曲线加密解密的经典方案 |
+| Elliptic Curve | y² = x³ + ax + b |
+| Finite Field | Discretization using modular arithmetic |
+| Point Addition | Geometric: Reflection of the intersection of a line through two points |
+| Scalar Multiplication | k × P, calculated efficiently using double-and-add |
+| ECDLP | Impossible to reverse k from Q and G |
+| ECIES | Classic scheme for elliptic curve encryption and decryption |
 
-## 练习题
+## Exercises
 
-### 手算练习
+### Manual Calculation Exercise
 
-曲线：`y² ≡ x³ + 2x + 2 (mod 17)`
+Curve: `y² ≡ x³ + 2x + 2 (mod 17)`
 
-1. 验证 (3, 1) 在曲线上
-2. 计算 (3, 1) + (5, 1)
-3. 计算 3 × (5, 1)
+1. Verify that (3, 1) is on the curve
+2. Calculate (3, 1) + (5, 1)
+3. Calculate 3 × (5, 1)
 
 ---
 
-下一章：[ECDSA 签名算法](/docs/cryptography/ecdsa)
+Next Chapter: [ECDSA Signature Algorithm](/docs/cryptography/ecdsa)
