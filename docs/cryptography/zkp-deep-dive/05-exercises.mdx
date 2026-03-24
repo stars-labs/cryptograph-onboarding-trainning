@@ -15,51 +15,467 @@ Try constructing an R1CS constraint system yourself, and the system will help yo
 
 ---
 
-## Thinking Questions
+## 这一节怎么学效果最好？
 
-1. Why does R1CS only need to focus on multiplication gates, while addition gates are "free"?
-   > Hint: Think about the form of R1CS constraints $(A \cdot s) \times (B \cdot s) = (C \cdot s)$—how can addition be absorbed?
+前面 4 节已经把主线讲完了：
 
-2. If a circuit has $n$ multiplication gates, how many constraints does R1CS have? What is the degree of the QAP vanishing polynomial $Z(t)$?
+- 算术电路：把计算拆成门
+- R1CS：把每一步乘法变成检查单
+- QAP：把很多张检查单压成一个多项式关系
+- Proof / Verification：把这个关系变成短 proof，再快速验证
 
-3. Why does the Verifier only need to check a single random point to be convinced that the polynomial equation holds?
-   > Hint: What does the Schwartz-Zippel Lemma say?
+这一节的目标不是“再背新概念”，而是：
 
-4. If the trusted setup's $\tau$ is leaked, what can an attacker do? Can they obtain other people's witnesses?
+> **把前面的理解真正变成你自己的。**
 
-## Manual Calculation Exercises
+建议做题顺序：
+1. 先回答“直觉题” —— 用自己的话说清楚概念
+2. 再做“手算题” —— 亲手把一个式子变成 R1CS
+3. 最后看“参考答案” —— 对照哪里已经懂了，哪里还模糊
 
-For $x^2 + x + 1 = y$:
+---
 
-1. Flatten the computation into gate operations and write down the intermediate variables
-2. Construct the witness vector (using $x = 4$ as an example)
-3. Write down the A, B, and C matrices for R1CS
-4. Verify if all constraints are satisfied
+## Part 1: 直觉题（先不急着算）
+
+这些题目建议先**不用公式**回答，先试着用人话讲清楚。
+
+### 1. 为什么 R1CS 主要盯着乘法门，而加法门好像“免费”？
+
+**提示：**
+想想 R1CS 的形式：
+
+$$
+(A \cdot s) \times (B \cdot s) = (C \cdot s)
+$$
+
+其中点积本身就能表达“几项相加”。
+
+**你可以从这个角度想：**
+- 乘法是“最难处理”的结构
+- 加法可以藏进“系数加权和”里
 
 <details>
-<summary>Reference Answer</summary>
+<summary>老师讲解版答案</summary>
 
-**Flattening:**
-- $\text{sym}_1 = x \times x$
-- $y = \text{sym}_1 + x + 1$
+因为 R1CS 每一行的核心任务是检查一次**乘法关系**是否成立。
 
-**Witness:** $\vec{s} = [1, x, y, \text{sym}_1] = [1, 4, 21, 16]$
+但加法并没有消失，它只是被吸收到点积里了。
 
-**R1CS (2 constraints):**
+例如：
 
-Constraint 1: $x \times x = \text{sym}_1$
+$$
+\text{sym}_2 + x + 5
+$$
 
-$$A_1 = [0,1,0,0], \; B_1 = [0,1,0,0], \; C_1 = [0,0,0,1]$$
+可以改写成：
 
-Constraint 2: $(\text{sym}_1 + x + 1) \times 1 = y$
+$$
+5\times1 + 1\times x + 1\times \text{sym}_2
+$$
 
-$$A_2 = [1,1,0,1], \; B_2 = [1,0,0,0], \; C_2 = [0,0,1,0]$$
+这其实就是“按系数把几个数加起来”。而点积：
 
-**Verification ($x = 4$):**
-- Constraint 1: $4 \times 4 = 16$ ✓
-- Constraint 2: $(16 + 4 + 1) \times 1 = 21 = y$ ✓
+$$
+A \cdot s
+$$
+
+天生就在做这件事。
+
+所以：
+- **乘法** 需要专门用一行约束来检查
+- **加法** 可以放进左边、右边或结果那一边的线性组合里
+
+这就是为什么常说：
+
+> **R1CS 真正昂贵的是乘法门，不是加法门。**
 
 </details>
+
+---
+
+### 2. 如果一个电路有 $n$ 个关键乘法门，那么 R1CS 和 QAP 分别会怎样增长？
+
+**提示：**
+- 一个乘法门对应几条 R1CS 约束？
+- vanishing polynomial $Z(t)$ 要在几个检查点上等于 0？
+
+<details>
+<summary>老师讲解版答案</summary>
+
+如果一个电路有 $n$ 个关键乘法门，那么通常：
+
+- **R1CS 约束数 ≈ $n$**
+- **QAP 的 vanishing polynomial** 会在这 $n$ 个检查点上为 0
+
+所以：
+
+$$
+Z(t) = (t-1)(t-2)\cdots(t-n)
+$$
+
+它的次数就是：
+
+$$
+\deg Z(t) = n
+$$
+
+为什么？
+
+因为 R1CS 是“每个乘法门一张检查单”，而 QAP 是“把这 $n$ 张检查单对应到 $n$ 个点上，再压成一个总多项式关系”。
+
+所以约束越多：
+- R1CS 的行数越多
+- QAP 的检查点越多
+- $Z(t)$ 的次数也越高
+
+</details>
+
+---
+
+### 3. 为什么验证者不用检查所有点，只抽查一个随机点就很有说服力？
+
+**提示：**
+想想 Schwartz-Zippel Lemma 在说什么：
+
+> 两个不同的多项式，不太可能在随机挑的点上刚好取到相同值。
+
+<details>
+<summary>老师讲解版答案</summary>
+
+因为“假的多项式”很难在随机抽查时一直装得像真的。
+
+如果两个多项式其实不同，那么它们最多只会在少量点上巧合相等。
+当验证者随机挑一个点去检查时，证明者几乎不可能提前猜中这个点并伪装成功。
+
+所以从直觉上看：
+
+- **真证明**：在所有该成立的地方都成立
+- **假证明**：只能在少数地方碰巧蒙对
+- **随机抽查**：非常容易把假证明抓出来
+
+这就是为什么 zk-SNARK 不需要把整个多项式展开给你看一遍。
+
+</details>
+
+---
+
+### 4. 如果 trusted setup 里的 $\tau$ 泄露了，会发生什么？
+
+**提示：**
+分开想两个问题：
+1. 攻击者能不能伪造 proof？
+2. 攻击者能不能反推出别人的 witness？
+
+<details>
+<summary>老师讲解版答案</summary>
+
+如果 $\tau$ 泄露了，最严重的问题是：
+
+> **攻击者可以伪造 proof。**
+
+因为 setup 的安全性就建立在“没人知道 $\tau$”这件事上。
+一旦知道了它，就可以伪造“看起来满足多项式关系”的加密值。
+
+但是：
+
+> **知道 $\tau$ 不等于自动知道别人的 witness。**
+
+witness 是证明者自己的输入和中间值。
+它并不是直接存放在 setup 参数里的。
+
+所以泄露 $\tau$ 的后果主要是：
+- 系统的**可伪造性**被破坏
+- 不是所有历史 witness 都自动暴露
+
+不过从系统安全角度来说，这已经是致命问题了，因为验证者再也无法相信 proof 的真实性。
+
+</details>
+
+---
+
+## Part 2: 手算题（把理解变成手感）
+
+现在做一道完整的小题：
+
+$$
+x^2 + x + 1 = y
+$$
+
+建议你按下面 4 步做，不要一上来就抄答案。
+
+### 练习任务
+
+1. 把这个计算拆成门操作，并写出中间变量
+2. 构造 witness 向量（用 $x = 4$ 做例子）
+3. 写出对应的 R1CS 三个向量 / 矩阵行
+4. 检查所有约束是否成立
+
+---
+
+## Part 3: 老师带你一步一步做
+
+<details>
+<summary>展开参考答案（建议先自己想 5 分钟）</summary>
+
+### 第一步：先把式子拆开
+
+原式：
+
+$$
+x^2 + x + 1 = y
+$$
+
+最自然的拆法是：
+
+- 先算 $x^2$
+- 再把它和 $x$、常数 1 加起来
+
+所以设一个中间变量：
+
+$$
+\text{sym}_1 = x^2
+$$
+
+那么整个计算就变成两步：
+
+1. $x \times x = \text{sym}_1$
+2. $(\text{sym}_1 + x + 1) \times 1 = y$
+
+注意第 2 步看起来有点怪，但这正是 R1CS 的标准写法：
+
+> **把加法塞到一边，再乘以 1 保持值不变。**
+
+---
+
+### 第二步：写 witness 向量
+
+先代入：
+
+$$
+x = 4
+$$
+
+于是：
+
+$$
+\text{sym}_1 = 4^2 = 16
+$$
+
+$$
+y = 16 + 4 + 1 = 21
+$$
+
+所以 witness 向量可以写成：
+
+$$
+\vec{s} = [1, x, y, \text{sym}_1] = [1, 4, 21, 16]
+$$
+
+这里各位置分别代表：
+
+| 位置 | 含义 | 数值 |
+|------|------|------|
+| 0 | 常数 1 | 1 |
+| 1 | 输入 $x$ | 4 |
+| 2 | 输出 $y$ | 21 |
+| 3 | 中间变量 $\text{sym}_1$ | 16 |
+
+---
+
+### 第三步：写第 1 条约束
+
+第 1 条约束是：
+
+$$
+x \times x = \text{sym}_1
+$$
+
+那就意味着：
+- 左边拿 $x$
+- 右边也拿 $x$
+- 结果放进 $\text{sym}_1$
+
+所以：
+
+$$
+A_1 = [0,1,0,0]
+$$
+
+$$
+B_1 = [0,1,0,0]
+$$
+
+$$
+C_1 = [0,0,0,1]
+$$
+
+验算一下：
+
+$$
+A_1 \cdot s = 4,
+\quad B_1 \cdot s = 4,
+\quad C_1 \cdot s = 16
+$$
+
+所以：
+
+$$
+4 \times 4 = 16
+$$
+
+成立 ✓
+
+---
+
+### 第四步：写第 2 条约束
+
+第 2 条约束是：
+
+$$
+(\text{sym}_1 + x + 1) \times 1 = y
+$$
+
+先把左边写成线性组合：
+
+$$
+1\times1 + 1\times x + 1\times \text{sym}_1
+$$
+
+所以：
+
+$$
+A_2 = [1,1,0,1]
+$$
+
+因为它表示：
+- 拿 1 个常数 1
+- 拿 1 个 $x$
+- 拿 1 个 $\text{sym}_1$
+
+右边是乘以常数 1，所以：
+
+$$
+B_2 = [1,0,0,0]
+$$
+
+结果放到 $y$，所以：
+
+$$
+C_2 = [0,0,1,0]
+$$
+
+验算：
+
+$$
+A_2 \cdot s = 1\times1 + 1\times4 + 1\times16 = 21
+$$
+
+$$
+B_2 \cdot s = 1
+$$
+
+$$
+C_2 \cdot s = 21
+$$
+
+所以：
+
+$$
+21 \times 1 = 21
+$$
+
+成立 ✓
+
+---
+
+### 第五步：把两条约束合起来看
+
+所以整个 R1CS 系统就是两条检查：
+
+#### Constraint 1
+
+$$
+A_1 = [0,1,0,0],\quad B_1 = [0,1,0,0],\quad C_1 = [0,0,0,1]
+$$
+
+#### Constraint 2
+
+$$
+A_2 = [1,1,0,1],\quad B_2 = [1,0,0,0],\quad C_2 = [0,0,1,0]
+$$
+
+如果写成矩阵：
+
+$$
+A = \begin{bmatrix}
+0 & 1 & 0 & 0 \\
+1 & 1 & 0 & 1
+\end{bmatrix}, \quad
+B = \begin{bmatrix}
+0 & 1 & 0 & 0 \\
+1 & 0 & 0 & 0
+\end{bmatrix}, \quad
+C = \begin{bmatrix}
+0 & 0 & 0 & 1 \\
+0 & 0 & 1 & 0
+\end{bmatrix}
+$$
+
+---
+
+### 第六步：最后一句话总结这题
+
+这题真正想让你练会的是：
+
+1. **先把式子拆成乘法步骤**
+2. **再把每一步翻译成“左边拿什么、右边拿什么、结果放哪儿”**
+3. **最后代 witness 检查是不是都成立**
+
+如果这三步你能自己做下来，就说明 R1CS 已经真的入门了。
+
+</details>
+
+---
+
+## Part 4: 进阶自测题（不用马上写答案）
+
+如果你已经做完上一题，可以继续挑战下面这些：
+
+### 进阶题 1
+
+把下面这个式子转成 R1CS：
+
+$$
+x^3 + 2x + 7 = y
+$$
+
+**提示：**
+- 先引入 $\text{sym}_1 = x^2$
+- 再引入 $\text{sym}_2 = x^3$
+- 最后一条约束把加法全部放到同一边
+
+### 进阶题 2
+
+如果把 witness 改错一个数，比如把 $\text{sym}_1$ 从 16 改成 15，会在哪一条约束上失败？为什么？
+
+### 进阶题 3
+
+如果一个表达式里完全没有乘法，只有加法，那么它还需要多少条 R1CS 约束？
+
+**提示：**
+想想“加法被塞进点积里”这句话到底意味着什么。
+
+---
+
+## 最后的学习建议
+
+如果你现在感觉：
+
+- **R1CS 大概懂了，但还不够熟** → 再手算 2 题
+- **QAP 直觉有了，但公式还是容易忘** → 记住“检查点 + 整除”这两个词
+- **Proof/Verify 流程明白了，但 pairing 很抽象** → 先记住它是“检查隐藏乘法关系的工具”就够了
+
+你现在已经具备继续学 Merkle 树和完整 zk-SNARK 工具链的基础了。
 
 ---
 
