@@ -180,14 +180,33 @@ const styles = {
     fontSize: '13px',
     transition: 'all 0.5s ease',
   },
-  dotStep: {
-    display: 'inline-block',
-    padding: '3px 8px',
-    borderRadius: '4px',
-    margin: '2px',
-    fontFamily: 'monospace',
+  helperGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '10px',
+    marginTop: '12px',
+  },
+  helperCard: {
+    padding: '12px',
+    borderRadius: '8px',
+    backgroundColor: '#0f0f23',
+    border: '1px solid #3a4a6b',
     fontSize: '13px',
-    transition: 'all 0.4s ease',
+    lineHeight: '1.6',
+  },
+  rowHint: {
+    marginTop: '12px',
+    padding: '12px 14px',
+    borderRadius: '8px',
+    backgroundColor: '#0f0f23',
+    border: '1px solid #3a4a6b',
+    fontSize: '13px',
+    lineHeight: '1.7',
+  },
+  clickTip: {
+    fontSize: '12px',
+    color: '#888',
+    marginTop: '6px',
   },
 };
 
@@ -243,6 +262,7 @@ function ManualConstructTab() {
   const [userC, setUserC] = useState(emptyMatrix);
   const [checked, setChecked] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [activeRow, setActiveRow] = useState(0);
 
   // Dummy witness for live feedback (x=3)
   const s = useMemo(() => computeWitness(3), []);
@@ -307,24 +327,54 @@ function ManualConstructTab() {
   const feedbackB = useMemo(() => liveDotFeedback(userB, CORRECT_B, 'B', '#90caf9'), [userB, s]);
   const feedbackC = useMemo(() => liveDotFeedback(userC, CORRECT_C, 'C', '#a5d6a7'), [userC, s]);
 
+  const rowTeacherNotes = [
+    {
+      left: '左边要拿 x',
+      right: '右边也拿 x',
+      output: '结果放到 sym₁',
+      child: '这一行就是在检查：x × x 是不是等于 sym₁。',
+    },
+    {
+      left: '左边拿 sym₁（也就是 x²）',
+      right: '右边拿 x',
+      output: '结果放到 sym₂',
+      child: '这一行就是在检查：x² × x 是不是等于 x³。',
+    },
+    {
+      left: '左边同时拿 5×1、1×x、1×sym₂',
+      right: '右边拿常数 1',
+      output: '结果放到 y',
+      child: '这一行是在做最后总验收：sym₂ + x + 5 是否等于 y。',
+    },
+  ];
+
+  const activeNote = rowTeacherNotes[activeRow];
+
   function renderMatrix(label, color, userMatrix, setter, statusMatrix) {
     return (
       <div style={{ ...styles.section, border: `1px solid ${color}33` }}>
         <h3 style={{ ...styles.sectionTitle, color }}>矩阵 {label}</h3>
-        <div style={{ overflowX: 'auto' }}>
+        <div style={styles.clickTip}>
+          点击某一行，可以看到“这行到底在检查什么”。
+        </div>
+        <div style={{ overflowX: 'auto', marginTop: '8px' }}>
           <table style={styles.matrixTable}>
             <thead>
               <tr>
                 <th style={styles.matrixHeader}>约束</th>
                 {VAR_NAMES.map((vn, i) => (
-                  <th key={i} style={styles.matrixHeader}>{vn}</th>
+                  <th key={i} style={styles.matrixHeader} title={`这一列对应变量 ${vn}`}>{vn}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {userMatrix.map((row, ri) => (
-                <tr key={ri}>
-                  <td style={{ ...styles.matrixLabel, color, fontSize: '12px' }}>
+                <tr
+                  key={ri}
+                  onClick={() => setActiveRow(ri)}
+                  style={{ cursor: 'pointer', backgroundColor: activeRow === ri ? 'rgba(255,204,128,0.08)' : 'transparent' }}
+                >
+                  <td style={{ ...styles.matrixLabel, color, fontSize: '12px', borderColor: activeRow === ri ? '#ffcc80' : '#3a4a6b' }}>
                     {CONSTRAINT_LABELS[ri]}
                   </td>
                   {row.map((cell, ci) => {
@@ -333,10 +383,10 @@ function ManualConstructTab() {
                     if (cellStatus === true) extraStyle = styles.matrixInputCorrect;
                     else if (cellStatus === false) extraStyle = styles.matrixInputIncorrect;
                     return (
-                      <td key={ci} style={{ ...styles.matrixCell, padding: '6px' }}>
+                      <td key={ci} style={{ ...styles.matrixCell, padding: '6px', borderColor: activeRow === ri ? '#ffcc80' : '#3a4a6b' }} title={`第 ${ri + 1} 行，变量 ${VAR_NAMES[ci]}：填写这一行要用几份 ${VAR_NAMES[ci]}`}>
                         <input
                           type="number"
-                          style={{ ...styles.matrixInput, ...extraStyle }}
+                          style={{ ...styles.matrixInput, ...extraStyle, ...(activeRow === ri ? { backgroundColor: '#16162b' } : {}) }}
                           value={cell}
                           onChange={e => updateCell(setter, ri, ci, e.target.value)}
                           disabled={revealed}
@@ -377,10 +427,33 @@ function ManualConstructTab() {
             </div>
           ))}
         </div>
+        <div style={styles.helperGrid}>
+          <div style={styles.helperCard}>
+            <strong style={{ color: '#ce93d8' }}>矩阵 A</strong><br />
+            它回答：<strong>乘号左边拿什么？</strong>
+          </div>
+          <div style={styles.helperCard}>
+            <strong style={{ color: '#90caf9' }}>矩阵 B</strong><br />
+            它回答：<strong>乘号右边拿什么？</strong>
+          </div>
+          <div style={styles.helperCard}>
+            <strong style={{ color: '#a5d6a7' }}>矩阵 C</strong><br />
+            它回答：<strong>结果应该等于什么？</strong>
+          </div>
+        </div>
         <div style={styles.tooltip}>
           变量列顺序：<strong style={{ color: '#90caf9' }}>1 &nbsp; x &nbsp; y &nbsp; sym₁ &nbsp; sym₂</strong>。
           每个矩阵行对应一个约束，填入系数使 (A·s) × (B·s) = (C·s) 成立。
           填写时以 x=3 为例实时检验点积。
+        </div>
+        <div style={styles.rowHint}>
+          <div style={{ marginBottom: '6px', color: '#ffcc80', fontWeight: 'bold' }}>
+            你现在在看：约束 {activeRow + 1}
+          </div>
+          <div><strong style={{ color: '#ce93d8' }}>A 行：</strong>{activeNote.left}</div>
+          <div><strong style={{ color: '#90caf9' }}>B 行：</strong>{activeNote.right}</div>
+          <div><strong style={{ color: '#a5d6a7' }}>C 行：</strong>{activeNote.output}</div>
+          <div style={{ marginTop: '6px', color: '#bbb' }}>{activeNote.child}</div>
         </div>
       </div>
 
@@ -389,6 +462,7 @@ function ManualConstructTab() {
       {renderMatrix('C', '#a5d6a7', userC, setUserC, statusC)}
 
       {/* Live dot product feedback */}
+
       {anyFilled && (
         <div style={styles.section}>
           <h3 style={styles.sectionTitle}>实时点积检验（x = 3）</h3>
