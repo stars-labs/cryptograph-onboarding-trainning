@@ -1,9 +1,9 @@
 {
-  "label": "零知识证明深入",
+  "label": "ZKP Deep Dive",
   "position": 10,
   "collapsed": false,
   "link": {
     "type": "generated-index",
-    "description": "从算术电路到零知识证明的完整流水线：电路 → R1CS → QAP → 证明生成与验证"
+    "description": "The complete pipeline from arithmetic circuits to zero-knowledge proofs: Circuits → R1CS → QAP → Proof Generation & Verification"
   }
 }

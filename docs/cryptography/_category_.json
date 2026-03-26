@@ -1,8 +1,8 @@
 {
-  "label": "密码学基础",
+  "label": "Cryptography Basics",
   "position": 2,
   "link": {
     "type": "generated-index",
-    "description": "从零开始理解 ECDSA 椭圆曲线数字签名算法，循序渐进掌握加密货币核心技术"
+    "description": "Understand ECDSA and elliptic curve digital signature algorithms from scratch, step by step mastering core cryptocurrency technologies"
   }
 }

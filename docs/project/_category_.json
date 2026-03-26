@@ -1,8 +1,8 @@
 {
-  "label": "毕业项目",
+  "label": "Capstone Project",
   "position": 12,
   "link": {
     "type": "generated-index",
-    "description": "综合运用密码学知识，完成实战项目"
+    "description": "Apply cryptography knowledge to complete hands-on projects"
   }
 }

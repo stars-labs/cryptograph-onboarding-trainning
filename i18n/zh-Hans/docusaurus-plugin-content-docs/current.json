@@ -1,30 +1,30 @@
 {
   "version.label": {
-    "message": "Next",
+    "message": "最新",
     "description": "The label for version current"
   },
   "sidebar.tutorialSidebar.category.Cryptography Basics": {
-    "message": "Cryptography Basics",
+    "message": "密码学基础",
     "description": "The label for category 'Cryptography Basics' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.Cryptography Basics.link.generated-index.description": {
-    "message": "Understand ECDSA and elliptic curve digital signature algorithms from scratch, step by step mastering core cryptocurrency technologies",
+    "message": "从零开始理解 ECDSA 椭圆曲线数字签名算法，循序渐进掌握加密货币核心技术",
     "description": "The generated-index page description for category 'Cryptography Basics' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.ZKP Deep Dive": {
-    "message": "ZKP Deep Dive",
+    "message": "零知识证明深入",
     "description": "The label for category 'ZKP Deep Dive' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.ZKP Deep Dive.link.generated-index.description": {
-    "message": "The complete pipeline from arithmetic circuits to zero-knowledge proofs: Circuits → R1CS → QAP → Proof Generation & Verification",
+    "message": "从算术电路到零知识证明的完整流水线：电路 → R1CS → QAP → 证明生成与验证",
     "description": "The generated-index page description for category 'ZKP Deep Dive' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.Capstone Project": {
-    "message": "Capstone Project",
+    "message": "毕业项目",
     "description": "The label for category 'Capstone Project' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.Capstone Project.link.generated-index.description": {
-    "message": "Apply cryptography knowledge to complete hands-on projects",
+    "message": "综合运用密码学知识，完成实战项目",
     "description": "The generated-index page description for category 'Capstone Project' in sidebar 'tutorialSidebar'"
   }
 }
