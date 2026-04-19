@@ -307,6 +307,175 @@ const styles = {
   },
 };
 
+// ==================== Tab 0: Intuition (drag points to see curve) ====================
+
+function IntuitionTab() {
+  const [y1, setY1] = useState(1);
+  const [y2, setY2] = useState(0);
+  const [y3, setY3] = useState(1);
+  const [mode, setMode] = useState(3); // 2 or 3 points
+
+  const points = mode === 2
+    ? [{ x: 1, y: y1 }, { x: 3, y: y3 }]
+    : [{ x: 1, y: y1 }, { x: 2, y: y2 }, { x: 3, y: y3 }];
+  const coeffs = useMemo(() => lagrangeInterpolate(points), [y1, y2, y3, mode]);
+
+  // SVG viewport
+  const W = 520, H = 320;
+  const PAD_L = 44, PAD_R = 20, PAD_T = 20, PAD_B = 36;
+  const xMin = 0, xMax = 4;
+  const yMin = -3, yMax = 5;
+  const xToPx = (x) => PAD_L + ((x - xMin) / (xMax - xMin)) * (W - PAD_L - PAD_R);
+  const yToPx = (y) => H - PAD_B - ((y - yMin) / (yMax - yMin)) * (H - PAD_T - PAD_B);
+
+  // Generate smooth curve samples
+  const samples = [];
+  const N = 120;
+  for (let i = 0; i <= N; i++) {
+    const xv = xMin + ((xMax - xMin) * i) / N;
+    const yv = evalPoly(coeffs, xv);
+    samples.push([xToPx(xv), yToPx(yv)]);
+  }
+  const pathD = samples.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+
+  const degreeLabel = mode === 2 ? '1 次（直线）' : '2 次（抛物线）';
+
+  return (
+    <div>
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>点 → 曲线直觉</h3>
+        <p style={styles.explanation}>
+          Lagrange 插值只做一件事：<strong style={{ color: '#ffcc80' }}>给几个点，画一条穿过它们的唯一曲线</strong>。
+          先不用看公式，拖动下面的滑块改变点的高度，看曲线怎么变化。
+        </p>
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <button
+            style={{
+              ...styles.tab,
+              ...(mode === 2 ? styles.tabActive : styles.tabInactive),
+              borderRadius: '6px',
+            }}
+            onClick={() => setMode(2)}
+          >
+            2 个点 → 一条直线
+          </button>
+          <button
+            style={{
+              ...styles.tab,
+              ...(mode === 3 ? styles.tabActive : styles.tabInactive),
+              borderRadius: '6px',
+            }}
+            onClick={() => setMode(3)}
+          >
+            3 个点 → 一条抛物线
+          </button>
+        </div>
+
+        <div style={{ backgroundColor: '#0f0f23', borderRadius: '8px', padding: '12px' }}>
+          <svg
+            width="100%"
+            viewBox={`0 0 ${W} ${H}`}
+            style={{ maxWidth: '560px', display: 'block', margin: '0 auto' }}
+            aria-label="interpolation plot"
+          >
+            {/* vertical gridlines for t=1,2,3 */}
+            {[1, 2, 3].map(t => (
+              <line
+                key={`v${t}`}
+                x1={xToPx(t)} y1={PAD_T}
+                x2={xToPx(t)} y2={H - PAD_B}
+                stroke="#2a3a5b" strokeWidth="1" strokeDasharray="4,4"
+              />
+            ))}
+            {/* horizontal y=0 axis */}
+            <line
+              x1={PAD_L} y1={yToPx(0)}
+              x2={W - PAD_R} y2={yToPx(0)}
+              stroke="#3a4a6b" strokeWidth="1"
+            />
+            {/* y-axis */}
+            <line
+              x1={PAD_L} y1={PAD_T}
+              x2={PAD_L} y2={H - PAD_B}
+              stroke="#3a4a6b" strokeWidth="1"
+            />
+            {/* x-axis labels */}
+            {[0, 1, 2, 3, 4].map(t => (
+              <text key={`xl${t}`} x={xToPx(t)} y={H - PAD_B + 18} fill="#888" fontSize="12" textAnchor="middle">{t}</text>
+            ))}
+            {/* y-axis labels */}
+            {[-2, 0, 2, 4].map(y => (
+              <g key={`yl${y}`}>
+                <line x1={PAD_L - 4} y1={yToPx(y)} x2={PAD_L} y2={yToPx(y)} stroke="#3a4a6b" strokeWidth="1" />
+                <text x={PAD_L - 8} y={yToPx(y) + 4} fill="#888" fontSize="12" textAnchor="end">{y}</text>
+              </g>
+            ))}
+            {/* curve */}
+            <path d={pathD} fill="none" stroke="#42a5f5" strokeWidth="2.5" />
+            {/* points */}
+            {points.map(({ x, y }, i) => (
+              <g key={`pt${i}`}>
+                <circle cx={xToPx(x)} cy={yToPx(y)} r="8" fill="#ffcc80" stroke="#fff" strokeWidth="2" />
+                <text x={xToPx(x)} y={yToPx(y) - 14} fill="#ffcc80" fontSize="12" textAnchor="middle" fontWeight="bold">
+                  ({x}, {y})
+                </text>
+              </g>
+            ))}
+          </svg>
+        </div>
+
+        <div style={{ marginTop: '16px' }}>
+          {[
+            { t: 1, val: y1, setter: setY1, show: true },
+            { t: 2, val: y2, setter: setY2, show: mode === 3 },
+            { t: 3, val: y3, setter: setY3, show: true },
+          ].filter(r => r.show).map(({ t, val, setter }) => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{ ...styles.label, minWidth: '64px' }}>点 t={t}</span>
+              <input
+                type="range"
+                min="-3"
+                max="5"
+                step="0.5"
+                value={val}
+                onChange={e => setter(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#ffcc80' }}
+              />
+              <span style={{
+                ...styles.evalChip,
+                backgroundColor: 'rgba(255,204,128,0.15)',
+                color: '#ffcc80',
+                minWidth: '64px',
+                textAlign: 'center',
+              }}>
+                y = {val}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ ...styles.polyBox, marginTop: '14px' }}>
+          <div style={{ color: '#90caf9', marginBottom: '4px' }}>
+            当前的 {points.length} 个点对应的唯一 {degreeLabel}：
+          </div>
+          <div style={{ color: '#a5d6a7' }}>
+            <strong>{formatPoly(coeffs)}</strong>
+          </div>
+        </div>
+
+        <div style={styles.tooltip}>
+          关键体会：拖动滑块时曲线跟着变，但<strong style={{ color: '#ffcc80' }}>永远精确穿过</strong>你设定的点。
+          这就是 Lagrange 插值做的事 —— 公式只是"怎么算"的细节，你只要相信"这样的曲线存在且唯一"即可。
+          <br /><br />
+          <strong>把 n 个点喂给 Lagrange，一定吐出唯一一条 n−1 次多项式曲线。</strong>
+          后面"拉格朗日插值"标签页里看到的吓人公式，就是在做这件事。
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ==================== Tab 1: Lagrange Interpolation ====================
 
 function LagrangeTab() {
@@ -914,11 +1083,12 @@ function nearZero(v) {
 
 export default function QAPDemo() {
   const [x, setX] = useState(3);
-  const [activeTab, setActiveTab] = useState('lagrange');
+  const [activeTab, setActiveTab] = useState('intuition');
 
   const witness = useMemo(() => computeWitness(x), [x]);
 
   const tabs = [
+    { key: 'intuition', label: '点→曲线直觉' },
     { key: 'lagrange', label: '拉格朗日插值' },
     { key: 'polyvis', label: '多项式可视化' },
     { key: 'division', label: '整除检查' },
@@ -982,6 +1152,7 @@ export default function QAPDemo() {
         ))}
       </div>
 
+      {activeTab === 'intuition' && <IntuitionTab />}
       {activeTab === 'lagrange' && <LagrangeTab />}
       {activeTab === 'polyvis' && <PolyVisTab x={x} />}
       {activeTab === 'division' && <DivisionTab x={x} />}

@@ -13,81 +13,104 @@ See how R1CS matrices turn into polynomials through Lagrange interpolation!
 
 <QAPDemo />
 
----
+:::tip Suggested learning order
+Before reading the text below, open the **"Points → Curve Intuition"** tab in the demo above and play with the sliders for a minute.
 
-## 为什么还要再来一个 QAP？
-
-上一节我们已经学会了 R1CS：
-
-- 每一条约束都像一张“检查单”
-- 电路里有几次关键乘法，就有几条约束
-- 只要每条都成立，说明整个电路没算错
-
-这已经很好了。
-
-**但问题是：如果约束有 10 条、1000 条、10 万条呢？**
-
-验证者总不能一条一条慢慢检查。
-
-所以 QAP 做的事情可以用一句话概括：
-
-> **把“很多条小检查题”，压缩成“一道大检查题”。**
-
-:::info 小学生类比
-想象老师要检查你 100 道口算题：
-- **R1CS**：第 1 题对不对？第 2 题对不对？第 3 题对不对？一题一题查
-- **QAP**：把这 100 道题压成一张“总成绩报告”，只要这张总报告满足规则，就说明前面 100 道题都对了
+Once you've got a feel for "a few points uniquely determine a curve," the text will go down much more smoothly.
 :::
 
 ---
 
-## QAP 到底在做什么？
+## Why do we need yet another representation?
 
-QAP 的核心不是“发明新约束”，而是：
+Last section we learned R1CS:
 
-1. 先保留 R1CS 的信息
-2. 再把矩阵里的“每一列数字”变成“一个多项式”
-3. 最后把“很多条约束都成立”变成“一个多项式可以整除另一个多项式”
+- Each constraint is like a "checklist item"
+- As many key multiplications in the circuit, as many constraints
+- If every one passes, the whole circuit is correct
 
-如果你现在只记一句话，请记这个：
+So far so good.
 
-> **R1CS 是按行检查，QAP 是把所有行打包以后一起检查。**
+**But what if there are 10, 1,000, or 100,000 constraints?**
+
+The verifier can't check them one by one.
+
+QAP's purpose can be summed up in one line:
+
+> **Compress "many small checks" into "one big check."**
+
+:::info Grade-school analogy
+Imagine a teacher has to check your 100 arithmetic problems:
+- **R1CS**: Is problem 1 right? Is problem 2 right? Check each one.
+- **QAP**: Compress all 100 problems into a single "overall score report." If that one report satisfies a rule, all 100 problems were right.
+:::
 
 ---
 
-## 第一步：把“每一列数字”想成“几个打卡点”
+## What is QAP actually doing?
 
-回忆 R1CS：
-- 每一**行**对应一条约束
-- 每一**列**对应一个变量（比如常数 1、x、y、sym₁、sym₂）
+QAP is not about inventing new constraints. Its core moves are:
 
-比如在上一节里，A 矩阵中变量 $x$ 对应的那一列是：
+1. Keep the information in R1CS
+2. Turn "each column of numbers" in the matrices into "a polynomial"
+3. Turn "many constraints all hold" into "one polynomial divides another polynomial"
+
+If you only remember one sentence, remember this:
+
+> **R1CS checks row by row. QAP packs all rows together and checks once.**
+
+---
+
+## Key question: why turn numbers into curves at all?
+
+This is where students get stuck most often: the table was fine — why bother turning it into polynomials?
+
+One-line answer:
+
+> **Tables of numbers can't be "combined," but polynomials can.**
+
+For example:
+
+- You have two Excel tables. There's **no way** to "multiply" them into a new table.
+- But two polynomials can be multiplied directly: $(t+1) \cdot (t-2) = t^2 - t - 2$, and the result is still a polynomial.
+
+QAP wants to combine "all 100 constraints hold" into "one polynomial equation holds." To combine, we first need the numbers in each constraint to become objects that support arithmetic — polynomials.
+
+---
+
+## Step 1: think of each column as a few "check-in points"
+
+Recall R1CS:
+- Each **row** is a constraint
+- Each **column** is a variable (for example the constant 1, x, y, sym₁, sym₂)
+
+From the previous section, the column for variable $x$ in matrix A is:
 
 $$
 A_x = \begin{bmatrix} 1 \\ 0 \\ 1 \end{bmatrix}
 $$
 
-这是什么意思？
+What does this say?
 
-- 在第 1 条约束里，$x$ 的系数是 1
-- 在第 2 条约束里，$x$ 的系数是 0
-- 在第 3 条约束里，$x$ 的系数是 1
+- In constraint 1, the coefficient of $x$ is 1
+- In constraint 2, the coefficient of $x$ is 0
+- In constraint 3, the coefficient of $x$ is 1
 
-我们把三条约束编号成 3 个点：
+Label the three constraints as three evaluation points:
 
 $$
 t = 1,\; 2,\; 3
 $$
 
-于是这一列就可以读成：
+Now this column reads as:
 
-| 位置 t | 值 |
+| Position t | Value |
 |--------|----|
 | 1 | 1 |
 | 2 | 0 |
 | 3 | 1 |
 
-也就是说，我们现在手里有 3 个点：
+So we now have 3 points:
 
 $$
 (1,1),\; (2,0),\; (3,1)
@@ -95,85 +118,156 @@ $$
 
 ---
 
-## 第二步：用一条曲线穿过这些点
+## Quick warm-up: how many points determine what kind of curve?
 
-QAP 的做法是：
+Before we touch Lagrange, let's build one piece of intuition.
 
-> **不要只记住“3 个离散数字”，而是找一条多项式曲线，刚好穿过这 3 个点。**
+| How many points? | What curve is determined? |
+|---|---|
+| 1 point | Infinitely many curves pass through it — not unique |
+| **2 points** | **Exactly one straight line** (degree-1 polynomial) |
+| **3 points** | **Exactly one parabola** (degree-2 polynomial) |
+| n points | **Exactly one degree-(n−1) polynomial curve** |
 
-这就叫 **Lagrange 插值**。
+:::info Temperature log analogy
+Monday 10°, Wednesday 0°, Friday 10°.
 
-对于上面的 3 个点，插值得到的多项式是：
+Roughly what was Tuesday and Thursday? — Draw a smooth curve through those three points and read off the values.
 
-$$
-A_x(t) = 1 \cdot \frac{(t-2)(t-3)}{(1-2)(1-3)} + 0 \cdot \frac{(t-1)(t-3)}{(2-1)(2-3)} + 1 \cdot \frac{(t-1)(t-2)}{(3-1)(3-2)}
-$$
+**That's exactly what Lagrange interpolation does: given a few discrete samples, it draws the unique smooth curve through them.**
+:::
 
-化简后：
+Back to our 3 points $(1,1),\; (2,0),\; (3,1)$: because there are 3 of them, they determine a **unique degree-2 polynomial curve**.
 
-$$
-A_x(t) = t^2 - 3t + 3
-$$
-
-这个式子现在看起来有点吓人，但你只要知道它满足：
-
-$$
-A_x(1)=1,\quad A_x(2)=0,\quad A_x(3)=1
-$$
-
-就够了。
-
-### 你可以把它理解成什么？
-
-以前我们记的是：
-
-> “第 1 行是 1，第 2 行是 0，第 3 行是 1”
-
-现在我们改成记：
-
-> “有一条曲线，在 1、2、3 这三个位置，刚好取到 1、0、1”
-
-也就是说：
-- **R1CS 记的是表格里的格子**
-- **QAP 记的是穿过这些格子的曲线**
-
-:::info 为什么要这样做？
-因为“很多格子”不方便压缩，
-但“很多条曲线”可以通过多项式运算合并到一起。
+:::tip Go play with the demo
+Now is a good time to go back to the **"Points → Curve Intuition"** tab, drag the sliders to change the heights of the three points, and watch how the curve "wobbles but always passes through the three points."
 :::
 
 ---
 
-## 第三步：每一列都变成一条多项式
+## Step 2: treat Lagrange as a "trendline" button
 
-刚才只是拿 A 矩阵里变量 $x$ 的那一列举例。
+OK, we know 3 points uniquely determine a degree-2 curve. So **how do we actually compute that curve?**
 
-实际上，我们会对：
-- A 矩阵的每一列
-- B 矩阵的每一列
-- C 矩阵的每一列
+The answer is a standard tool called **Lagrange interpolation**. Think of it like Excel's "Add Trendline" feature — feed in the points, it spits out a curve that passes through all of them.
 
-都做同样的事情。
+:::tip You don't need to compute this by hand
+In real zk-SNARK projects, this step is done automatically by the proving system (the computer).
 
-最后得到三组多项式：
+You only need to accept one fact: **given n points, Lagrange produces a unique degree-(n−1) polynomial.**
+:::
+
+For our 3 points $(1,1),\; (2,0),\; (3,1)$, Lagrange gives:
+
+$$
+A_x(t) = t^2 - 4t + 4
+$$
+
+### Not sure? Just plug in numbers to verify
+
+To confirm "this curve really does pass through those 3 points," **you don't need to understand the formula** — just elementary arithmetic:
+
+| Plug in | Compute $t^2 - 4t + 4$ | Result | Target | OK? |
+|---|---|---|---|---|
+| $t = 1$ | $1 - 4 + 4$ | $1$ | $1$ | ✅ |
+| $t = 2$ | $4 - 8 + 4$ | $0$ | $0$ | ✅ |
+| $t = 3$ | $9 - 12 + 4$ | $1$ | $1$ | ✅ |
+
+The curve does pass through all three points. **At this point you've grasped the most important step of QAP.**
+
+### How to think about what just happened
+
+Previously we recorded:
+
+> "Row 1 is 1, row 2 is 0, row 3 is 1."
+
+Now we record instead:
+
+> "There's a curve that takes the values 1, 0, 1 at positions $t=1, 2, 3$ respectively."
+
+In other words:
+
+- **R1CS records the cells in the table**
+- **QAP records the curve that passes through those cells**
+
+:::info Why bother?
+Because "many cells" can't be compressed, but "many curves" can be combined via polynomial arithmetic.
+That's exactly the "Key question" from earlier — polynomials multiply and add, tables don't.
+:::
+
+<details>
+<summary>[Optional] How does Lagrange actually construct this curve? (only if you care about the math)</summary>
+
+The core idea is actually simple: **first build "indicator polynomials," then weight-sum them by the y-values.**
+
+**Step 1**: Build a polynomial $L_1(t)$ such that it equals $1$ at $t=1$ and equals $0$ at $t=2, 3$.
+
+- To make it zero at $t=2, 3$, the most direct thing is to write $(t-2)(t-3)$.
+- Plug in $t=1$: $(1-2)(1-3) = (-1)(-2) = 2$.
+- But we want $1$, not $2$, so divide by $2$ to normalize:
+
+$$
+L_1(t) = \frac{(t-2)(t-3)}{2}
+$$
+
+This $L_1(t)$ is the "switch for position 1": it's lit (value 1) at $t=1$ and off (value 0) at $t=2, 3$.
+
+**Step 2**: Build $L_2(t)$ (only lit at $t=2$) and $L_3(t)$ (only lit at $t=3$) the same way:
+
+$$
+L_2(t) = \frac{(t-1)(t-3)}{(2-1)(2-3)} = -(t-1)(t-3)
+$$
+
+$$
+L_3(t) = \frac{(t-1)(t-2)}{(3-1)(3-2)} = \frac{(t-1)(t-2)}{2}
+$$
+
+**Step 3**: Weight-sum the three switches by the y-values (the heights we want the curve to reach at each point):
+
+$$
+A_x(t) = 1 \cdot L_1(t) + 0 \cdot L_2(t) + 1 \cdot L_3(t) = \frac{(t-2)(t-3)}{2} + \frac{(t-1)(t-2)}{2}
+$$
+
+Simplify:
+
+$$
+= \frac{(t-2)\big[(t-3) + (t-1)\big]}{2} = \frac{(t-2)(2t-4)}{2} = (t-2)^2 = t^2 - 4t + 4
+$$
+
+So all those scary-looking fractions are each just a tiny "switch that lights up at one position and goes dark at the others." The whole Lagrange formula is "sum of switches."
+
+</details>
+
+---
+
+## Step 3: every column becomes a polynomial
+
+We've only been working with the $x$ column of matrix A.
+
+In practice, we do the same thing for:
+- Every column of matrix A
+- Every column of matrix B
+- Every column of matrix C
+
+This gives three families of polynomials:
 
 $$
 A_i(t), \quad B_i(t), \quad C_i(t)
 $$
 
-其中 $i$ 表示第 $i$ 个变量对应的那一列。
+where $i$ indexes the column for the $i$-th variable.
 
 ---
 
-## 第四步：把 witness 也“带进来”
+## Step 4: bring the witness in
 
-还记得 witness 向量吗？
+Recall the witness vector:
 
 $$
 \vec{s} = [1, x, y, \text{sym}_1, \text{sym}_2]
 $$
 
-QAP 会用 witness 里的数，把这些列多项式“加权合并”成 3 个总多项式：
+QAP uses the witness values to weight-combine the column polynomials into 3 aggregate polynomials:
 
 $$
 A(t) = \sum_i s_i \cdot A_i(t), \quad
@@ -181,241 +275,240 @@ B(t) = \sum_i s_i \cdot B_i(t), \quad
 C(t) = \sum_i s_i \cdot C_i(t)
 $$
 
-如果你觉得这个式子抽象，可以把它翻译成一句话：
+If that looks abstract, here's it in one sentence:
 
-> **把每一列的曲线，按 witness 里的数字大小，加权叠加起来。**
+> **Take each column's curve and weight-stack them by the corresponding witness value.**
 
-这和上一节的点积思想很像：
-- 上一节是“按系数从盒子里拿数”
-- 这一节是“按 witness 的值，把很多列曲线加起来”
+This is just like the dot-product idea from the last section:
+- Last section: "use coefficients to pick numbers out of the box"
+- This section: "use witness values to combine many column curves"
 
-所以：
-- $A(t)$ = 所有 A 列一起组成的“总左边”
-- $B(t)$ = 所有 B 列一起组成的“总右边”
-- $C(t)$ = 所有 C 列一起组成的“总结果”
+So:
+- $A(t)$ = the "aggregate left side" built from all A columns
+- $B(t)$ = the "aggregate right side" built from all B columns
+- $C(t)$ = the "aggregate result" built from all C columns
 
 ---
 
-## 第五步：为什么能把很多条约束压成一条式子？
+## Step 5: why can we pack many constraints into one equation?
 
-QAP 最重要的公式是：
+The key QAP equation is:
 
 $$
 A(t) \cdot B(t) - C(t) = H(t) \cdot Z(t)
 $$
 
-先别急着记，先看它在说什么。
+Don't memorize it — first understand what it's saying.
 
-### 第一个重点：左边表示“误差”
+### The left side represents "error"
 
 $$
 A(t) \cdot B(t) - C(t)
 $$
 
-如果某个地方本来应该满足：
+If we were supposed to have:
 
 $$
 A(t) \cdot B(t) = C(t)
 $$
 
-那把右边移过来以后，就应该等于 0。
+then moving $C$ to the left gives 0.
 
-所以左边这坨东西可以理解成：
+So the left side is essentially:
 
-> **“总误差函数”**
+> **the "total error function"**
 
-如果所有约束都对，那么在每个约束对应的位置，这个误差都应该是 0。
+If all constraints hold, this error is 0 at every constraint's position.
 
 ---
 
-## 第六步：什么是 vanishing polynomial？
+## Step 6: what is the vanishing polynomial?
 
-QAP 里有一个非常重要的多项式：
+QAP defines a very important polynomial:
 
 $$
 Z(t) = (t-1)(t-2)(t-3)
 $$
 
-为什么是它？
+Why this one?
 
-因为我们的 3 条约束对应 3 个检查点：
+Because our 3 constraints correspond to 3 evaluation points:
 
 $$
 t = 1,\; 2,\; 3
 $$
 
-所以：
+so:
 
-- 当 $t=1$ 时，$Z(1)=0$
-- 当 $t=2$ 时，$Z(2)=0$
-- 当 $t=3$ 时，$Z(3)=0$
+- At $t=1$: $Z(1)=0$
+- At $t=2$: $Z(2)=0$
+- At $t=3$: $Z(3)=0$
 
-也就是说，$Z(t)$ 是一个专门在所有“检查点”上都等于 0 的多项式。
+$Z(t)$ is a polynomial designed to vanish at exactly those "check points."
 
-:::info 小学生类比
-把 $t=1,2,3$ 想成 3 个门禁点。
+:::info Grade-school analogy
+Think of $t=1,2,3$ as three gates.
 
-$Z(t)$ 就像一把“专用钥匙”：
-- 到第 1 个门，它变成 0
-- 到第 2 个门，它也变成 0
-- 到第 3 个门，它还是变成 0
+$Z(t)$ is like a "special key":
+- At gate 1, it becomes 0
+- At gate 2, it also becomes 0
+- At gate 3, still 0
 
-只要一个多项式能被这把“钥匙”整除，就说明它在所有这些门禁点上都为 0。
+If a polynomial is divisible by this "key," it must be zero at every one of those gates.
 :::
 
 ---
 
-## 第七步：整除到底说明了什么？
+## Step 7: what does divisibility tell us?
 
-现在再看这条式子：
+Revisit the equation:
 
 $$
 A(t) \cdot B(t) - C(t) = H(t) \cdot Z(t)
 $$
 
-它的真正含义是：
+What it really says is:
 
-> **误差多项式可以被 $Z(t)$ 整除。**
+> **The error polynomial is divisible by $Z(t)$.**
 
-而“能被 $Z(t)$ 整除”又等价于：
+And "divisible by $Z(t)$" is equivalent to:
 
-> **误差多项式在 $t=1,2,3$ 这些检查点上全部等于 0。**
+> **The error polynomial is zero at every check point $t=1,2,3$.**
 
-也就是：
-- 第 1 条约束成立
-- 第 2 条约束成立
-- 第 3 条约束成立
+Which means:
+- Constraint 1 holds
+- Constraint 2 holds
+- Constraint 3 holds
 
-所以这条“一个整除关系”，其实就打包代表了“所有约束都成立”。
+So this single divisibility relation already encodes "all constraints are satisfied."
 
 ---
 
-## 用最直白的话重新说一遍
+## Saying it again, in the plainest terms
 
-R1CS 原本是在做：
+R1CS used to do:
 
 ```text
-检查第1行对不对
-检查第2行对不对
-检查第3行对不对
+Check row 1
+Check row 2
+Check row 3
 ...
 ```
 
-QAP 改成了：
+QAP changes that to:
 
 ```text
-先把所有行变成多项式
-再把“所有地方都等于0”这件事
-打包成“可以被 Z(t) 整除”
+First turn every row into a polynomial
+Then pack "zero everywhere it should be"
+into "divisible by Z(t)"
 ```
 
-所以：
+So:
 
-> **QAP 不是换了一种问题，而是把“很多个小问题”压缩成“一个大问题”。**
+> **QAP isn't a different problem — it compresses "many small problems" into "one big problem."**
 
 ---
 
-## 为什么这会更高效？
+## Why is this more efficient?
 
 ```text
-R1CS: 一条一条检查 n 个约束
-QAP: 检查一个多项式关系是否成立
+R1CS: check n constraints one by one
+QAP:  check a single polynomial relation
 ```
 
-更进一步，现代 zk-SNARK 会利用配对和承诺等技巧，把这个“多项式关系检查”继续压缩。
+Modern zk-SNARKs go further, using pairings and commitments to compress "check a polynomial relation" even more.
 
-验证者最后不需要逐条看约束，只需要检查极少量的数学关系。
+In the end, the verifier doesn't look at constraints one by one — only a very small amount of math.
 
-### 这里的关键直觉
+### The key intuition
 
-- **R1CS**：像老师逐题批改
-- **QAP**：像老师先把所有题汇总成总成绩规则，再检查总成绩规则是不是成立
+- **R1CS**: like a teacher grading problem by problem
+- **QAP**: like a teacher summarizing all problems into one overall grading rule, and only checking that rule
 
 ---
 
-## 公式在检查点上到底发生了什么？
+## What actually happens at the check points?
 
-如果 witness 是正确的，那么在每个检查点：
+If the witness is correct, at each check point:
 
-### 在 $t=1$ 时
+### At $t=1$
 
 $$
 A(1) \cdot B(1) - C(1) = 0
 $$
 
-这代表：**第 1 条约束成立**。
+This means: **constraint 1 is satisfied**.
 
-### 在 $t=2$ 时
+### At $t=2$
 
 $$
 A(2) \cdot B(2) - C(2) = 0
 $$
 
-这代表：**第 2 条约束成立**。
+This means: **constraint 2 is satisfied**.
 
-### 在 $t=3$ 时
+### At $t=3$
 
 $$
 A(3) \cdot B(3) - C(3) = 0
 $$
 
-这代表：**第 3 条约束成立**。
+This means: **constraint 3 is satisfied**.
 
-所以如果在 1、2、3 这三个点都为 0，那么：
+So if the expression is 0 at $t=1, 2, 3$, then:
 
 $$
 A(t) \cdot B(t) - C(t)
 $$
 
-一定含有因子：
+must contain the factor:
 
 $$
 (t-1)(t-2)(t-3)
 $$
 
-也就是：
+i.e.:
 
 $$
 Z(t)
 $$
 
-这就是 QAP 的核心。
+That's the heart of QAP.
 
 ---
 
-## 三句话记住 QAP
+## Three sentences to remember QAP
 
-1. **把 R1CS 每一列数字，变成一条多项式曲线。**
-2. **把所有约束的误差，合成一个总误差多项式。**
-3. **如果总误差在所有检查点都为 0，它就一定能被 $Z(t)$ 整除。**
-
----
-
-## 为什么验证者最后只用检查很少的东西？
-
-这里用到一个重要结论：**Schwartz-Zippel Lemma**。
-
-它的大意是：
-
-> 如果两个不同的多项式，随机挑一个点去检查，它们大概率不会刚好一样。
-
-所以验证者不必把整个多项式从头到尾展开看完。
-只要在一个随机点上检查关系，出错的证明就几乎不可能蒙混过关。
-
-你可以把它理解成：
-
-> **一个假的大多项式，很难在随机抽查时恰好伪装成真的。**
+1. **Turn every column of R1CS numbers into a polynomial curve.**
+2. **Combine all the constraint errors into one total error polynomial.**
+3. **If the total error is zero at every check point, it must be divisible by $Z(t)$.**
 
 ---
 
-## 最后的总类比
+## Why does the verifier only need to check very little?
 
-- **算术电路**：像做题步骤图
-- **R1CS**：像把每一步变成检查单
-- **QAP**：像把所有检查单压缩成一条总规则
-- **zk-SNARK**：像拿着这条总规则，快速证明“我全都做对了”，但不暴露中间细节
+The important result here is the **Schwartz-Zippel Lemma**.
+
+Roughly:
+
+> If two different polynomials are evaluated at a random point, they are very unlikely to happen to agree.
+
+So the verifier doesn't need to expand and inspect the whole polynomial.
+Checking the relation at a single random point is enough — a bogus proof almost cannot sneak past.
+
+One way to think about it:
+
+> **A fake polynomial has a very hard time disguising itself as the real one under a random spot check.**
+
+---
+
+## The grand analogy
+
+- **Arithmetic circuit**: like a step-by-step problem diagram
+- **R1CS**: like turning each step into a checklist item
+- **QAP**: like compressing all checklist items into one overall rule
+- **zk-SNARK**: like using that one rule to quickly prove "I got everything right" without revealing any intermediate details
 
 ---
 
 Next section: [Proof Generation and Verification](./proof-verification)
-
