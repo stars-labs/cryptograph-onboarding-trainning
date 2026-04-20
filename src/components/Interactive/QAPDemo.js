@@ -338,15 +338,16 @@ function IntuitionTab() {
   }
   const pathD = samples.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
 
-  const degreeLabel = mode === 2 ? '1 次（直线）' : '2 次（抛物线）';
+  const degreeLabel = mode === 2 ? '直线' : '抛物线';
 
   return (
     <div>
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>点 → 曲线直觉</h3>
         <p style={styles.explanation}>
-          Lagrange 插值只做一件事：<strong style={{ color: '#ffcc80' }}>给几个点，画一条穿过它们的唯一曲线</strong>。
-          先不用看公式，拖动下面的滑块改变点的高度，看曲线怎么变化。
+          Lagrange 是一个"画曲线"的小工具。<strong style={{ color: '#ffcc80' }}>你给它几个点，它就能画出一条平滑曲线，刚好穿过你给的所有点</strong>。
+          <br />
+          先别看公式，拖下面的滑块改变点的高度，亲眼看看曲线怎么跟着变。
         </p>
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '14px', marginBottom: '14px', flexWrap: 'wrap' }}>
@@ -457,7 +458,7 @@ function IntuitionTab() {
 
         <div style={{ ...styles.polyBox, marginTop: '14px' }}>
           <div style={{ color: '#90caf9', marginBottom: '4px' }}>
-            当前的 {points.length} 个点对应的唯一 {degreeLabel}：
+            这 {points.length} 个点对应的唯一一条{degreeLabel}：
           </div>
           <div style={{ color: '#a5d6a7' }}>
             <strong>{formatPoly(coeffs)}</strong>
@@ -465,11 +466,11 @@ function IntuitionTab() {
         </div>
 
         <div style={styles.tooltip}>
-          关键体会：拖动滑块时曲线跟着变，但<strong style={{ color: '#ffcc80' }}>永远精确穿过</strong>你设定的点。
-          这就是 Lagrange 插值做的事 —— 公式只是"怎么算"的细节，你只要相信"这样的曲线存在且唯一"即可。
+          看到了吗？拖滑块的时候曲线一直在变，但它<strong style={{ color: '#ffcc80' }}>永远乖乖地穿过</strong>你设的点。这就是 Lagrange 做的全部事——公式只是"怎么算"的细节，你只要相信"这样的曲线一定有，而且只有一条"就够了。
           <br /><br />
-          <strong>把 n 个点喂给 Lagrange，一定吐出唯一一条 n−1 次多项式曲线。</strong>
-          后面"拉格朗日插值"标签页里看到的吓人公式，就是在做这件事。
+          <strong>记住一件事：点越多，曲线可以扭得越厉害，但它永远穿过你给的每一个点。</strong>
+          <br />
+          后面"拉格朗日插值"标签页里看到的那些吓人公式，只是 Lagrange 在幕后画曲线时用的工具。
         </div>
       </div>
     </div>
@@ -495,11 +496,10 @@ function LagrangeTab() {
   return (
     <div>
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>从矩阵列到多项式</h3>
+        <h3 style={styles.sectionTitle}>把矩阵的每一列变成一条曲线</h3>
         <p style={styles.explanation}>
-          QAP 的核心思想：将 R1CS 矩阵的每一<strong>列</strong>作为在点 t=1,2,3 处的函数值，
-          通过拉格朗日插值求出经过这些点的多项式。
-          每个变量对应三个矩阵各一个多项式：u_i(t)、v_i(t)、w_i(t)。
+          这一步要做的事：<strong>把 R1CS 矩阵里每一竖条（也就是每一列）的 3 个数字，变成一条平滑曲线</strong>。
+          下面选一个矩阵（A、B、C），再选一个变量列，看这一列的 3 个数字怎么变成一条曲线。
         </p>
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '12px' }}>
@@ -532,12 +532,11 @@ function LagrangeTab() {
 
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>
-          第一步：读取评估点
+          第一步：读出这一列的 3 个数字
           <span style={{ ...styles.badge, backgroundColor: color, color: '#000' }}>{matrix} 矩阵</span>
         </h3>
         <p style={styles.explanation}>
-          变量 <strong style={{ color }}>{varNames[colIdx]}</strong> 在矩阵 {matrix} 中，
-          分别在约束 1、2、3（对应 t=1,2,3）处的系数为：
+          变量 <strong style={{ color }}>{varNames[colIdx]}</strong> 这一列，在 3 条约束（t=1, 2, 3）上分别是这 3 个数字：
         </p>
 
         <div style={{ overflowX: 'auto', marginTop: '12px' }}>
@@ -586,75 +585,237 @@ function LagrangeTab() {
         </div>
 
         <div style={styles.tooltip}>
-          高亮列（{varNames[colIdx]}）的值为：
+          把这 3 个数字当成 3 个点的高度：
           {columnValues.map(({ t, val }) => (
             <span key={t}>
-              {' '}f({t}) = <strong style={{ color }}>{val}</strong>
-              {t < 3 ? '，' : ''}
+              {' '}在 t = {t} 处高度是 <strong style={{ color }}>{val}</strong>
+              {t < 3 ? '，' : '。'}
             </span>
           ))}
+          <br />接下来要做的事：<strong>画一条曲线，让它恰好穿过这 3 个点。</strong>
         </div>
       </div>
 
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>第二步：拉格朗日插值公式</h3>
-        <p style={styles.explanation}>
-          已知三点 (1, {columnValues[0].val})、(2, {columnValues[1].val})、(3, {columnValues[2].val})，
-          构造次数 &le; 2 的多项式，令 L(t) = &sum; y_i &middot; l_i(t)，其中：
-        </p>
+      {(() => {
+        // Plot computation — dynamic y-range based on selected column + curve samples
+        const W = 520, H = 280;
+        const PAD_L = 44, PAD_R = 20, PAD_T = 20, PAD_B = 36;
+        const xMin = 0, xMax = 4;
+        const ySamples = [];
+        const NSAMP = 120;
+        for (let i = 0; i <= NSAMP; i++) {
+          const t = xMin + ((xMax - xMin) * i) / NSAMP;
+          ySamples.push({ t, y: evalPoly(coeffs, t) });
+        }
+        const rawYs = [...columnValues.map(v => v.val), ...ySamples.map(s => s.y), 0];
+        const yLo = Math.min(...rawYs);
+        const yHi = Math.max(...rawYs);
+        const span = Math.max(0.5, yHi - yLo);
+        const yPad = Math.max(0.5, span * 0.18);
+        const yMin = yLo - yPad;
+        const yMax = yHi + yPad;
+        const xToPx = (x) => PAD_L + ((x - xMin) / (xMax - xMin)) * (W - PAD_L - PAD_R);
+        const yToPx = (y) => H - PAD_B - ((y - yMin) / (yMax - yMin)) * (H - PAD_T - PAD_B);
+        const pathD = ySamples
+          .map((s, i) => (i === 0 ? 'M' : 'L') + xToPx(s.t).toFixed(1) + ',' + yToPx(s.y).toFixed(1))
+          .join(' ');
+        const tickStep = span > 8 ? 2 : 1;
+        const yTicks = [];
+        for (let y = Math.ceil(yMin / tickStep) * tickStep; y <= yMax; y += tickStep) {
+          yTicks.push(y);
+        }
 
-        <div style={styles.polyBox}>
-          {POINTS_T.map((ti, i) => {
-            const others = POINTS_T.filter(t => t !== ti);
-            const denom = others.reduce((acc, t) => acc * (ti - t), 1);
-            return (
-              <div key={i} style={{ marginBottom: '6px' }}>
-                <span style={{ color: '#90caf9' }}>l_{i + 1}(t)</span>
-                {' = '}
-                <span style={{ color: '#ddd' }}>
-                  {others.map(t => `(t - ${t})`).join(' · ')} / {denom}
-                </span>
-                {columnValues[i].val !== 0 && (
-                  <span style={{ color: '#aaa' }}>
-                    {'  ——  '}y_{i + 1} = <span style={{ color }}>{columnValues[i].val}</span>
-                  </span>
+        return (
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>第二步：让 Lagrange 画出穿过 3 个点的曲线</h3>
+            <p style={styles.explanation}>
+              Lagrange 是一个"画曲线"的小工具。把上面 3 个数字喂给它，它就自动画出一条平滑曲线，<strong style={{ color }}>刚好穿过</strong>下面这 3 个点：
+              <br />
+              <strong style={{ color }}>
+                (1, {columnValues[0].val})、(2, {columnValues[1].val})、(3, {columnValues[2].val})
+              </strong>
+            </p>
+
+            <div style={{ backgroundColor: '#0f0f23', borderRadius: '8px', padding: '12px', marginTop: '12px' }}>
+              <svg
+                width="100%"
+                viewBox={`0 0 ${W} ${H}`}
+                style={{ maxWidth: '560px', display: 'block', margin: '0 auto' }}
+                aria-label="interpolated curve for selected column"
+              >
+                {POINTS_T.map(t => (
+                  <line
+                    key={`v${t}`}
+                    x1={xToPx(t)} y1={PAD_T}
+                    x2={xToPx(t)} y2={H - PAD_B}
+                    stroke="#2a3a5b" strokeWidth="1" strokeDasharray="4,4"
+                  />
+                ))}
+                {yMin <= 0 && yMax >= 0 && (
+                  <line
+                    x1={PAD_L} y1={yToPx(0)}
+                    x2={W - PAD_R} y2={yToPx(0)}
+                    stroke="#3a4a6b" strokeWidth="1"
+                  />
                 )}
+                <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={H - PAD_B} stroke="#3a4a6b" strokeWidth="1" />
+                {[0, 1, 2, 3, 4].map(t => (
+                  <text key={`xl${t}`} x={xToPx(t)} y={H - PAD_B + 18} fill="#888" fontSize="12" textAnchor="middle">{t}</text>
+                ))}
+                {yTicks.map(y => (
+                  <g key={`yl${y}`}>
+                    <line x1={PAD_L - 4} y1={yToPx(y)} x2={PAD_L} y2={yToPx(y)} stroke="#3a4a6b" strokeWidth="1" />
+                    <text x={PAD_L - 8} y={yToPx(y) + 4} fill="#888" fontSize="12" textAnchor="end">{y}</text>
+                  </g>
+                ))}
+                <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" />
+                {POINTS_T.map((t, i) => (
+                  <g key={`pt${t}`}>
+                    <circle cx={xToPx(t)} cy={yToPx(columnValues[i].val)} r="7" fill="#ffcc80" stroke="#fff" strokeWidth="2" />
+                    <text
+                      x={xToPx(t)}
+                      y={yToPx(columnValues[i].val) - 12}
+                      fill="#ffcc80" fontSize="12" textAnchor="middle" fontWeight="bold"
+                    >
+                      ({t}, {columnValues[i].val})
+                    </text>
+                  </g>
+                ))}
+              </svg>
+            </div>
+
+            <div style={{ ...styles.polyBox, marginTop: '14px' }}>
+              <div style={{ color: '#90caf9', marginBottom: '4px' }}>这条曲线的数学写法（叫做"多项式"）：</div>
+              <div style={{ color: '#a5d6a7', fontSize: '16px' }}>
+                <strong>f(t) = {formatPoly(coeffs)}</strong>
               </div>
-            );
-          })}
-        </div>
+            </div>
 
-        <div style={{ ...styles.polyBox, marginTop: '12px' }}>
-          <div style={{ color: '#90caf9', marginBottom: '4px' }}>插值结果多项式系数 [a₀, a₁, a₂]：</div>
-          <div>
-            [{coeffs.map((c, i) => (
-              <span key={i}>
-                {i > 0 && ', '}
-                <span style={{ color: '#ffcc80' }}>{c}</span>
-              </span>
-            ))}]
-          </div>
-          <div style={{ marginTop: '8px', color: '#a5d6a7' }}>
-            即：<strong>{formatPoly(coeffs)}</strong>
-          </div>
-        </div>
+            <div style={{ marginTop: '14px' }}>
+              <div style={{ ...styles.label, marginBottom: '6px' }}>
+                把 t = 1、2、3 分别代进这个式子算一算，看曲线是不是真的穿过了这 3 个点：
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={styles.matrixTable}>
+                  <thead>
+                    <tr>
+                      <th style={styles.matrixHeader}>t</th>
+                      <th style={styles.matrixHeader}>代入算出来 f(t)</th>
+                      <th style={styles.matrixHeader}>应该等于</th>
+                      <th style={styles.matrixHeader}>对吗？</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {POINTS_T.map((t, i) => {
+                      const r = parseFloat(evalPoly(coeffs, t).toFixed(4));
+                      const target = columnValues[i].val;
+                      const ok = Math.abs(r - target) < 0.001;
+                      return (
+                        <tr key={t}>
+                          <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>{t}</td>
+                          <td style={{ ...styles.matrixCell, color }}>{r}</td>
+                          <td style={{ ...styles.matrixCell, color: '#ddd' }}>{target}</td>
+                          <td style={{
+                            ...styles.matrixCell,
+                            color: ok ? '#4caf50' : '#f44336',
+                            fontWeight: 'bold',
+                          }}>
+                            {ok ? '✓' : '✗'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-        <div style={styles.tooltip}>
-          验证：将 t=1,2,3 代入确认结果 —{' '}
-          {POINTS_T.map((t, i) => (
-            <span key={t}>
-              f({t}) = <strong style={{ color }}>{parseFloat(evalPoly(coeffs, t).toFixed(4))}</strong>
-              {i < 2 ? '，' : ''}
-            </span>
-          ))}
-          （应分别等于 {columnValues.map(cv => cv.val).join(', ')}）
-        </div>
-      </div>
+            <details style={{ marginTop: '14px' }}>
+              <summary style={{
+                cursor: 'pointer',
+                color: '#90caf9',
+                padding: '10px 14px',
+                background: '#0f0f23',
+                borderRadius: '8px',
+                border: '1px dashed #3a4a6b',
+                fontSize: '14px',
+                userSelect: 'none',
+              }}>
+                想知道 Lagrange 怎么想出这条曲线的？（用"3 盏小灯"的小故事讲 · 可选看）
+              </summary>
+              <div style={{ marginTop: '12px' }}>
+                <p style={styles.explanation}>
+                  其实 Lagrange 的做法可以用"3 盏神奇小灯"来讲清楚：
+                  <br />
+                  · 每盏灯只在<strong>自己那个点</strong>"亮"（值为 1），在其他点"灭"（值为 0）
+                  <br />
+                  · 每盏灯的"出力大小" = 那个点的高度 y
+                  <br />
+                  · 把 3 盏灯一起"开"起来，就得到了穿过 3 个点的曲线
+                </p>
+
+                <div style={styles.polyBox}>
+                  {POINTS_T.map((ti, i) => {
+                    const others = POINTS_T.filter(t => t !== ti);
+                    const denom = others.reduce((acc, t) => acc * (ti - t), 1);
+                    const weight = columnValues[i].val;
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          marginBottom: '10px',
+                          paddingBottom: '8px',
+                          borderBottom: i < 2 ? '1px dashed #2a3a5b' : 'none',
+                        }}
+                      >
+                        <div>
+                          <span style={{ color: '#90caf9' }}>第 {i + 1} 盏灯 l_{i + 1}(t)</span>
+                          {' = '}
+                          <span style={{ color: '#ddd' }}>
+                            {others.map(t => `(t − ${t})`).join(' · ')} / {denom}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                          · 在 t={ti} 时"亮"（值为 1），在 t={others.join('、')} 时"灭"（值为 0）
+                          <br />
+                          · 这个点的高度 = <span style={{ color, fontWeight: 'bold' }}>{weight}</span>
+                          {weight === 0
+                            ? '（高度是 0 → 这盏灯这次不出力）'
+                            : `（高度是 ${weight} → 这盏灯按 ${weight} 倍亮度出力，贡献 ${weight}·l_${i + 1}(t)）`}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ marginTop: '8px', color: '#a5d6a7', lineHeight: '1.8' }}>
+                    <div style={{ color: '#90caf9' }}>把所有出力的灯叠加起来：</div>
+                    <div>
+                      f(t) = {(() => {
+                        const terms = POINTS_T.map((_, i) => {
+                          const w = columnValues[i].val;
+                          return w === 0 ? null : `${w}·l_${i + 1}(t)`;
+                        }).filter(Boolean);
+                        return terms.length === 0 ? '0' : terms.join(' + ');
+                      })()}
+                    </div>
+                    <div>也就是：<strong>{formatPoly(coeffs)}</strong></div>
+                  </div>
+                </div>
+
+                <div style={styles.tooltip}>
+                  看明白了吗？那些一开始看起来很吓人的分式，每一个其实就是一盏"只在一个点亮、其他点都灭"的小灯。
+                  Lagrange 在做的事，就是"按每个点的高度把这些灯叠在一起"——就这么简单。
+                </div>
+              </div>
+            </details>
+          </div>
+        );
+      })()}
 
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>第三步：所有变量的多项式汇总</h3>
+        <h3 style={styles.sectionTitle}>第三步：每一列都照样画一条曲线</h3>
         <p style={styles.explanation}>
-          矩阵 {matrix} 的每一列都对应一个多项式 u_i(t)，共 {varNames.length} 个：
+          上面我们只处理了 1 列（变量 <strong style={{ color }}>{varNames[colIdx]}</strong>）。
+          其实矩阵 {matrix} 的每一列都能照同样的方法变成一条曲线——总共 {varNames.length} 列，就是 {varNames.length} 条曲线：
         </p>
         <div style={styles.polyBox}>
           {varNames.map((name, ci) => {
