@@ -853,6 +853,7 @@ function LagrangeTab() {
 
 function PolyVisTab({ x }) {
   const [tVal, setTVal] = useState(2.0);
+  const [synMat, setSynMat] = useState('A');
   const witness = useMemo(() => computeWitness(x), [x]);
   const { Av, Bv, Cv } = useMemo(() => buildQAP(), []);
 
@@ -908,11 +909,212 @@ function PolyVisTab({ x }) {
   return (
     <div>
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>累加多项式</h3>
+        <h3 style={styles.sectionTitle}>这一步要做的事</h3>
         <p style={styles.explanation}>
-          利用 witness s = [{witness.join(', ')}] 将各变量多项式加权求和，得到：
-          <br />A(t) = &sum; s_i &middot; u_i(t)，B(t) = &sum; s_i &middot; v_i(t)，C(t) = &sum; s_i &middot; w_i(t)
+          上一个 tab 里，我们学会了<strong>把矩阵的每一列变成一条曲线</strong>。
+          A、B、C 3 个矩阵各有 5 列，总共<strong>就是 15 条曲线</strong>——还是太多了。
         </p>
+        <p style={styles.explanation}>
+          这一步要做的事：<strong style={{ color: '#ffcc80' }}>把每个矩阵的 5 条列曲线合成 1 条总曲线</strong>，
+          最终只剩 <span style={{ color: '#42a5f5' }}>A(t)</span>、<span style={{ color: '#ce93d8' }}>B(t)</span>、<span style={{ color: '#a5d6a7' }}>C(t)</span> 这 3 条。
+        </p>
+      </div>
+
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>先回忆：witness 是啥？</h3>
+        <p style={styles.explanation}>
+          witness 是<strong>电路在计算时产生的所有数字</strong>——你输入的、中间算出来的、最后输出的，全部记下来排成一排。
+        </p>
+        <p style={styles.explanation}>
+          当 x = <strong style={{ color: '#ffcc80' }}>{x}</strong> 时，电路一步步算出：
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={styles.matrixTable}>
+            <thead>
+              <tr>
+                <th style={styles.matrixHeader}>变量</th>
+                <th style={styles.matrixHeader}>值</th>
+                <th style={styles.matrixHeader}>怎么算来的</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ ...styles.matrixCell, color: '#90caf9' }}>1（常数）</td>
+                <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>1</td>
+                <td style={{ ...styles.matrixCell, color: '#888', fontSize: '13px', textAlign: 'left', paddingLeft: '12px' }}>就是数字 1，固定不变</td>
+              </tr>
+              <tr>
+                <td style={{ ...styles.matrixCell, color: '#90caf9' }}>x</td>
+                <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>{x}</td>
+                <td style={{ ...styles.matrixCell, color: '#888', fontSize: '13px', textAlign: 'left', paddingLeft: '12px' }}>你输入的</td>
+              </tr>
+              <tr>
+                <td style={{ ...styles.matrixCell, color: '#90caf9' }}>sym1</td>
+                <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>{x * x}</td>
+                <td style={{ ...styles.matrixCell, color: '#888', fontSize: '13px', textAlign: 'left', paddingLeft: '12px' }}>x · x = {x}·{x} = {x * x}</td>
+              </tr>
+              <tr>
+                <td style={{ ...styles.matrixCell, color: '#90caf9' }}>sym2</td>
+                <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>{x * x * x}</td>
+                <td style={{ ...styles.matrixCell, color: '#888', fontSize: '13px', textAlign: 'left', paddingLeft: '12px' }}>sym1 · x = {x * x}·{x} = {x * x * x}</td>
+              </tr>
+              <tr>
+                <td style={{ ...styles.matrixCell, color: '#90caf9' }}>y</td>
+                <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>{x * x * x + x + 5}</td>
+                <td style={{ ...styles.matrixCell, color: '#888', fontSize: '13px', textAlign: 'left', paddingLeft: '12px' }}>sym2 + x + 5 = {x * x * x}+{x}+5 = {x * x * x + x + 5}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style={{ ...styles.polyBox, marginTop: '12px' }}>
+          把这 5 个数字排成一排就是 witness：
+          <div style={{ marginTop: '6px', color: '#a5d6a7' }}>
+            <strong>s = [{witness.join(', ')}]</strong>
+          </div>
+        </div>
+        <div style={styles.tooltip}>
+          下面合成总曲线时，每一条列曲线都会<strong style={{ color: '#ffcc80' }}>按 witness 对应位置的那个数字放大或缩小</strong>。
+          这就是 witness 的作用——它告诉我们每条列曲线要"用几倍的力气"加进去。
+        </div>
+      </div>
+
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>为什么要 3 条总曲线？不是 1 条？</h3>
+        <p style={styles.explanation}>
+          因为每一条 R1CS 约束的形式长这样：<strong style={{ color: '#ffcc80' }}>(左边) × (右边) = (结果)</strong>
+        </p>
+        <p style={styles.explanation}>
+          比如约束 1 是 <code style={{ background: '#0f0f23', padding: '2px 6px', borderRadius: '4px' }}>sym1 = x · x</code>——
+          左边是 x，右边也是 x，结果是 sym1。每条约束都有这 3 部分。
+        </p>
+        <ul style={{ color: '#ddd', fontSize: '14px', lineHeight: '1.9', marginLeft: '-16px' }}>
+          <li>A 矩阵专门记录<strong style={{ color: '#42a5f5' }}>每条约束的"左边"</strong>用到了哪些变量</li>
+          <li>B 矩阵专门记录<strong style={{ color: '#ce93d8' }}>每条约束的"右边"</strong>用到了哪些变量</li>
+          <li>C 矩阵专门记录<strong style={{ color: '#a5d6a7' }}>每条约束的"结果"</strong>用到了哪些变量</li>
+        </ul>
+        <p style={styles.explanation}>
+          所以我们要分别合成 3 条总曲线：
+          <br />
+          · <strong style={{ color: '#42a5f5' }}>A(t)</strong> = 所有约束"左边"的打包曲线
+          <br />
+          · <strong style={{ color: '#ce93d8' }}>B(t)</strong> = 所有约束"右边"的打包曲线
+          <br />
+          · <strong style={{ color: '#a5d6a7' }}>C(t)</strong> = 所有约束"结果"的打包曲线
+        </p>
+      </div>
+
+      {(() => {
+        const matMap = { A: Av, B: Bv, C: Cv };
+        const colMap = { A: '#42a5f5', B: '#ce93d8', C: '#a5d6a7' };
+        const labelMap = { A: '左边', B: '右边', C: '结果' };
+        const finalPoly = { A: polyA, B: polyB, C: polyC };
+        const polys = matMap[synMat];
+        const synColor = colMap[synMat];
+        return (
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>合成规则：每条列曲线 × 对应 witness 值，全加起来</h3>
+            <p style={styles.explanation}>
+              下面用表格把合成过程拆开。选一个矩阵看：
+            </p>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {['A', 'B', 'C'].map(m => (
+                <button
+                  key={m}
+                  onClick={() => setSynMat(m)}
+                  style={{
+                    ...styles.tab,
+                    ...(synMat === m ? styles.tabActive : styles.tabInactive),
+                    borderRadius: '6px',
+                    color: synMat === m ? colMap[m] : '#666',
+                  }}
+                >
+                  矩阵 {m}（{labelMap[m]}）
+                </button>
+              ))}
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={styles.matrixTable}>
+                <thead>
+                  <tr>
+                    <th style={styles.matrixHeader}>变量</th>
+                    <th style={styles.matrixHeader}>witness 值</th>
+                    <th style={{ ...styles.matrixHeader, color: synColor }}>{synMat} 矩阵的列曲线</th>
+                    <th style={styles.matrixHeader}>witness × 曲线 = 这一行贡献</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {varNames.map((name, i) => {
+                    const columnPoly = polys[i];
+                    const weight = witness[i];
+                    const contribPoly = columnPoly.map(c => c * weight);
+                    const isZeroPoly = columnPoly.every(c => Math.abs(c) < 1e-9);
+                    return (
+                      <tr key={i}>
+                        <td style={{ ...styles.matrixCell, color: '#90caf9', fontWeight: 'bold' }}>
+                          {name}
+                        </td>
+                        <td style={{ ...styles.matrixCell, color: '#ffcc80', fontWeight: 'bold' }}>
+                          {weight}
+                        </td>
+                        <td style={{
+                          ...styles.matrixCell,
+                          color: isZeroPoly ? '#555' : synColor,
+                          textAlign: 'left',
+                          paddingLeft: '12px',
+                          fontSize: '13px',
+                        }}>
+                          {isZeroPoly ? '0（这个变量在这里不出现）' : formatPoly(columnPoly)}
+                        </td>
+                        <td style={{
+                          ...styles.matrixCell,
+                          color: isZeroPoly || weight === 0 ? '#555' : '#a5d6a7',
+                          textAlign: 'left',
+                          paddingLeft: '12px',
+                          fontSize: '13px',
+                        }}>
+                          {isZeroPoly || weight === 0
+                            ? '0（不贡献）'
+                            : `${weight} · (${formatPoly(columnPoly)}) = ${formatPoly(contribPoly)}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <td colSpan={3} style={{
+                      ...styles.matrixCell,
+                      color: '#ffcc80',
+                      fontWeight: 'bold',
+                      textAlign: 'right',
+                      paddingRight: '12px',
+                    }}>
+                      全部加起来 →
+                    </td>
+                    <td style={{
+                      ...styles.matrixCell,
+                      color: synColor,
+                      fontWeight: 'bold',
+                      textAlign: 'left',
+                      paddingLeft: '12px',
+                    }}>
+                      {synMat}(t) = {formatPoly(finalPoly[synMat])}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style={styles.tooltip}>
+              看懂了吗？就是把 5 条列曲线按 witness 的值"放大/缩小"，再把它们叠在一起。
+              点上面的按钮切换到 <strong>B</strong>、<strong>C</strong> 看看——同样的做法。
+            </div>
+          </div>
+        );
+      })()}
+
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>最终得到的 3 条总曲线</h3>
         <div style={styles.polyBox}>
           <div>
             <span style={{ color: '#42a5f5' }}>A(t)</span>
@@ -929,15 +1131,23 @@ function PolyVisTab({ x }) {
           <div style={{ marginTop: '8px', borderTop: '1px solid #3a4a6b', paddingTop: '8px' }}>
             <span style={{ color: '#ffcc80' }}>Z(t)</span>
             {' = '}<span style={{ color: '#ddd' }}>{formatPoly(Z_POLY)}</span>
-            <span style={{ color: '#888', marginLeft: '8px', fontSize: '12px' }}>（靶多项式，t=1,2,3时为零）</span>
+            <span style={{ color: '#888', marginLeft: '8px', fontSize: '12px' }}>
+              （靶多项式：在 t=1、2、3 时刚好为 0 — 下一个 tab 会用到它）
+            </span>
           </div>
+        </div>
+        <div style={styles.tooltip}>
+          下一节要做的事：在 t=1、2、3 这 3 个检查点验证 A(t)·B(t) = C(t) 是否成立——
+          如果成立，就说明 witness 真的满足所有 R1CS 约束。
         </div>
       </div>
 
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>在整数点处验证</h3>
+        <h3 style={styles.sectionTitle}>检查：在 t=1、2、3 这 3 个检查点，A·B 是不是等于 C？</h3>
         <p style={styles.explanation}>
-          在 t=1,2,3 处，A(t)·B(t) - C(t) 应恒为零（因为每点对应一个 R1CS 约束）：
+          每个检查点对应一条 R1CS 约束。
+          <br />
+          如果 witness 真的满足所有约束，那在这 3 个点上 <strong>A(t)·B(t) − C(t) 应该都等于 0</strong>：
         </p>
         <div style={{ overflowX: 'auto', marginTop: '12px' }}>
           <table style={styles.matrixTable}>
@@ -983,12 +1193,14 @@ function PolyVisTab({ x }) {
           </table>
         </div>
         <div style={styles.tooltip}>
-          A(t)·B(t) - C(t) 在 t=1,2,3 处均为零，说明 Z(t) 整除 A(t)·B(t) - C(t)。
+          看——3 个点都是 0（打勾 ✓），这就证明了：<strong style={{ color: '#4caf50' }}>witness 确实满足所有 R1CS 约束</strong>。
+          <br />
+          而且因为 A·B−C 在 t=1、2、3 全为 0，它<strong>一定能被 Z(t) = (t−1)(t−2)(t−3) 整除</strong>——这就是下一 tab 要检查的事。
         </div>
       </div>
 
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>滑动 t 值实时查看</h3>
+        <h3 style={styles.sectionTitle}>好奇：在其他 t 值上会发生什么？</h3>
         <div style={{ marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={styles.label}>t = {tVal.toFixed(2)}</span>
@@ -1041,8 +1253,10 @@ function PolyVisTab({ x }) {
         </div>
 
         <div style={styles.tooltip}>
-          拖动滑块时观察：在 t=1,2,3 处 A·B-C 为零；在其他点不为零，但 Z(t) 也不为零，
-          整除关系 (A·B-C) = H·Z 始终成立。
+          拖动滑块观察：在 t=1、2、3 这 3 个检查点，A·B−C 正好为 0；
+          在其他 t 值上就不是 0 了。
+          <br />
+          但是别担心——下一 tab 会告诉你，这些"不为 0"的部分其实正好可以被 Z(t) 整除。
         </div>
       </div>
     </div>
