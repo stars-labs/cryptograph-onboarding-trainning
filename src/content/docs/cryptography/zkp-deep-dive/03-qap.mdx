@@ -1,0 +1,515 @@
+---
+sidebar:
+  order: 3
+title: "From R1CS to QAP"
+---
+
+import { QAPDemo } from '@site/src/components/Interactive';
+
+# 10.3 From R1CS to QAP
+
+## Interactive Demo
+
+See how R1CS matrices turn into polynomials through Lagrange interpolation!
+
+<QAPDemo client:only="react" />
+
+:::tip Suggested learning order
+Before reading the text below, open the **"Points → Curve Intuition"** tab in the demo above and play with the sliders for a minute.
+
+Once you've got a feel for "a few points uniquely determine a curve," the text will go down much more smoothly.
+:::
+
+---
+
+## Why do we need yet another representation?
+
+Last section we learned R1CS:
+
+- Each constraint is like a "checklist item"
+- As many key multiplications in the circuit, as many constraints
+- If every one passes, the whole circuit is correct
+
+So far so good.
+
+**But what if there are 10, 1,000, or 100,000 constraints?**
+
+The verifier can't check them one by one.
+
+QAP's purpose can be summed up in one line:
+
+> **Compress "many small checks" into "one big check."**
+
+:::info Grade-school analogy
+Imagine a teacher has to check your 100 arithmetic problems:
+- **R1CS**: Is problem 1 right? Is problem 2 right? Check each one.
+- **QAP**: Compress all 100 problems into a single "overall score report." If that one report satisfies a rule, all 100 problems were right.
+:::
+
+---
+
+## What is QAP actually doing?
+
+QAP is not about inventing new constraints. Its core moves are:
+
+1. Keep the information in R1CS
+2. Turn "each column of numbers" in the matrices into "a polynomial"
+3. Turn "many constraints all hold" into "one polynomial divides another polynomial"
+
+If you only remember one sentence, remember this:
+
+> **R1CS checks row by row. QAP packs all rows together and checks once.**
+
+---
+
+## Key question: why turn numbers into curves at all?
+
+This is where students get stuck most often: the table was fine — why bother turning it into polynomials?
+
+One-line answer:
+
+> **Tables of numbers can't be "combined," but polynomials can.**
+
+For example:
+
+- You have two Excel tables. There's **no way** to "multiply" them into a new table.
+- But two polynomials can be multiplied directly: $(t+1) \cdot (t-2) = t^2 - t - 2$, and the result is still a polynomial.
+
+QAP wants to combine "all 100 constraints hold" into "one polynomial equation holds." To combine, we first need the numbers in each constraint to become objects that support arithmetic — polynomials.
+
+---
+
+## Step 1: think of each column as a few "check-in points"
+
+Recall R1CS:
+- Each **row** is a constraint
+- Each **column** is a variable (for example the constant 1, x, y, sym₁, sym₂)
+
+From the previous section, the column for variable $x$ in matrix A is:
+
+$$
+A_x = \begin{bmatrix} 1 \\ 0 \\ 1 \end{bmatrix}
+$$
+
+What does this say?
+
+- In constraint 1, the coefficient of $x$ is 1
+- In constraint 2, the coefficient of $x$ is 0
+- In constraint 3, the coefficient of $x$ is 1
+
+Label the three constraints as three evaluation points:
+
+$$
+t = 1,\; 2,\; 3
+$$
+
+Now this column reads as:
+
+| Position t | Value |
+|--------|----|
+| 1 | 1 |
+| 2 | 0 |
+| 3 | 1 |
+
+So we now have 3 points:
+
+$$
+(1,1),\; (2,0),\; (3,1)
+$$
+
+---
+
+## Quick warm-up: how many points determine what kind of curve?
+
+Before we touch Lagrange, let's build one piece of intuition.
+
+| How many points? | What curve is determined? |
+|---|---|
+| 1 point | Infinitely many curves pass through it — not unique |
+| **2 points** | **Exactly one straight line** (degree-1 polynomial) |
+| **3 points** | **Exactly one parabola** (degree-2 polynomial) |
+| n points | **Exactly one degree-(n−1) polynomial curve** |
+
+:::info Temperature log analogy
+Monday 10°, Wednesday 0°, Friday 10°.
+
+Roughly what was Tuesday and Thursday? — Draw a smooth curve through those three points and read off the values.
+
+**That's exactly what Lagrange interpolation does: given a few discrete samples, it draws the unique smooth curve through them.**
+:::
+
+Back to our 3 points $(1,1),\; (2,0),\; (3,1)$: because there are 3 of them, they determine a **unique degree-2 polynomial curve**.
+
+:::tip Go play with the demo
+Now is a good time to go back to the **"Points → Curve Intuition"** tab, drag the sliders to change the heights of the three points, and watch how the curve "wobbles but always passes through the three points."
+:::
+
+---
+
+## Step 2: treat Lagrange as a "trendline" button
+
+OK, we know 3 points uniquely determine a degree-2 curve. So **how do we actually compute that curve?**
+
+The answer is a standard tool called **Lagrange interpolation**. Think of it like Excel's "Add Trendline" feature — feed in the points, it spits out a curve that passes through all of them.
+
+:::tip You don't need to compute this by hand
+In real zk-SNARK projects, this step is done automatically by the proving system (the computer).
+
+You only need to accept one fact: **given n points, Lagrange produces a unique degree-(n−1) polynomial.**
+:::
+
+For our 3 points $(1,1),\; (2,0),\; (3,1)$, Lagrange gives:
+
+$$
+A_x(t) = t^2 - 4t + 4
+$$
+
+### Not sure? Just plug in numbers to verify
+
+To confirm "this curve really does pass through those 3 points," **you don't need to understand the formula** — just elementary arithmetic:
+
+| Plug in | Compute $t^2 - 4t + 4$ | Result | Target | OK? |
+|---|---|---|---|---|
+| $t = 1$ | $1 - 4 + 4$ | $1$ | $1$ | ✅ |
+| $t = 2$ | $4 - 8 + 4$ | $0$ | $0$ | ✅ |
+| $t = 3$ | $9 - 12 + 4$ | $1$ | $1$ | ✅ |
+
+The curve does pass through all three points. **At this point you've grasped the most important step of QAP.**
+
+### How to think about what just happened
+
+Previously we recorded:
+
+> "Row 1 is 1, row 2 is 0, row 3 is 1."
+
+Now we record instead:
+
+> "There's a curve that takes the values 1, 0, 1 at positions $t=1, 2, 3$ respectively."
+
+In other words:
+
+- **R1CS records the cells in the table**
+- **QAP records the curve that passes through those cells**
+
+:::info Why bother?
+Because "many cells" can't be compressed, but "many curves" can be combined via polynomial arithmetic.
+That's exactly the "Key question" from earlier — polynomials multiply and add, tables don't.
+:::
+
+<details>
+<summary>[Optional] How does Lagrange actually construct this curve? (only if you care about the math)</summary>
+
+The core idea is actually simple: **first build "indicator polynomials," then weight-sum them by the y-values.**
+
+**Step 1**: Build a polynomial $L_1(t)$ such that it equals $1$ at $t=1$ and equals $0$ at $t=2, 3$.
+
+- To make it zero at $t=2, 3$, the most direct thing is to write $(t-2)(t-3)$.
+- Plug in $t=1$: $(1-2)(1-3) = (-1)(-2) = 2$.
+- But we want $1$, not $2$, so divide by $2$ to normalize:
+
+$$
+L_1(t) = \frac{(t-2)(t-3)}{2}
+$$
+
+This $L_1(t)$ is the "switch for position 1": it's lit (value 1) at $t=1$ and off (value 0) at $t=2, 3$.
+
+**Step 2**: Build $L_2(t)$ (only lit at $t=2$) and $L_3(t)$ (only lit at $t=3$) the same way:
+
+$$
+L_2(t) = \frac{(t-1)(t-3)}{(2-1)(2-3)} = -(t-1)(t-3)
+$$
+
+$$
+L_3(t) = \frac{(t-1)(t-2)}{(3-1)(3-2)} = \frac{(t-1)(t-2)}{2}
+$$
+
+**Step 3**: Weight-sum the three switches by the y-values (the heights we want the curve to reach at each point):
+
+$$
+A_x(t) = 1 \cdot L_1(t) + 0 \cdot L_2(t) + 1 \cdot L_3(t) = \frac{(t-2)(t-3)}{2} + \frac{(t-1)(t-2)}{2}
+$$
+
+Simplify:
+
+$$
+= \frac{(t-2)\big[(t-3) + (t-1)\big]}{2} = \frac{(t-2)(2t-4)}{2} = (t-2)^2 = t^2 - 4t + 4
+$$
+
+So all those scary-looking fractions are each just a tiny "switch that lights up at one position and goes dark at the others." The whole Lagrange formula is "sum of switches."
+
+</details>
+
+---
+
+## Step 3: every column becomes a polynomial
+
+We've only been working with the $x$ column of matrix A.
+
+In practice, we do the same thing for:
+- Every column of matrix A
+- Every column of matrix B
+- Every column of matrix C
+
+This gives three families of polynomials:
+
+$$
+A_i(t), \quad B_i(t), \quad C_i(t)
+$$
+
+where $i$ indexes the column for the $i$-th variable.
+
+---
+
+## Step 4: bring the witness in
+
+Recall the witness vector:
+
+$$
+\vec{s} = [1, x, y, \text{sym}_1, \text{sym}_2]
+$$
+
+QAP uses the witness values to weight-combine the column polynomials into 3 aggregate polynomials:
+
+$$
+A(t) = \sum_i s_i \cdot A_i(t), \quad
+B(t) = \sum_i s_i \cdot B_i(t), \quad
+C(t) = \sum_i s_i \cdot C_i(t)
+$$
+
+If that looks abstract, here's it in one sentence:
+
+> **Take each column's curve and weight-stack them by the corresponding witness value.**
+
+This is just like the dot-product idea from the last section:
+- Last section: "use coefficients to pick numbers out of the box"
+- This section: "use witness values to combine many column curves"
+
+So:
+- $A(t)$ = the "aggregate left side" built from all A columns
+- $B(t)$ = the "aggregate right side" built from all B columns
+- $C(t)$ = the "aggregate result" built from all C columns
+
+---
+
+## Step 5: why can we pack many constraints into one equation?
+
+The key QAP equation is:
+
+$$
+A(t) \cdot B(t) - C(t) = H(t) \cdot Z(t)
+$$
+
+Don't memorize it — first understand what it's saying.
+
+### The left side represents "error"
+
+$$
+A(t) \cdot B(t) - C(t)
+$$
+
+If we were supposed to have:
+
+$$
+A(t) \cdot B(t) = C(t)
+$$
+
+then moving $C$ to the left gives 0.
+
+So the left side is essentially:
+
+> **the "total error function"**
+
+If all constraints hold, this error is 0 at every constraint's position.
+
+---
+
+## Step 6: what is the vanishing polynomial?
+
+QAP defines a very important polynomial:
+
+$$
+Z(t) = (t-1)(t-2)(t-3)
+$$
+
+Why this one?
+
+Because our 3 constraints correspond to 3 evaluation points:
+
+$$
+t = 1,\; 2,\; 3
+$$
+
+so:
+
+- At $t=1$: $Z(1)=0$
+- At $t=2$: $Z(2)=0$
+- At $t=3$: $Z(3)=0$
+
+$Z(t)$ is a polynomial designed to vanish at exactly those "check points."
+
+:::info Grade-school analogy
+Think of $t=1,2,3$ as three gates.
+
+$Z(t)$ is like a "special key":
+- At gate 1, it becomes 0
+- At gate 2, it also becomes 0
+- At gate 3, still 0
+
+If a polynomial is divisible by this "key," it must be zero at every one of those gates.
+:::
+
+---
+
+## Step 7: what does divisibility tell us?
+
+Revisit the equation:
+
+$$
+A(t) \cdot B(t) - C(t) = H(t) \cdot Z(t)
+$$
+
+What it really says is:
+
+> **The error polynomial is divisible by $Z(t)$.**
+
+And "divisible by $Z(t)$" is equivalent to:
+
+> **The error polynomial is zero at every check point $t=1,2,3$.**
+
+Which means:
+- Constraint 1 holds
+- Constraint 2 holds
+- Constraint 3 holds
+
+So this single divisibility relation already encodes "all constraints are satisfied."
+
+---
+
+## Saying it again, in the plainest terms
+
+R1CS used to do:
+
+```text
+Check row 1
+Check row 2
+Check row 3
+...
+```
+
+QAP changes that to:
+
+```text
+First turn every row into a polynomial
+Then pack "zero everywhere it should be"
+into "divisible by Z(t)"
+```
+
+So:
+
+> **QAP isn't a different problem — it compresses "many small problems" into "one big problem."**
+
+---
+
+## Why is this more efficient?
+
+```text
+R1CS: check n constraints one by one
+QAP:  check a single polynomial relation
+```
+
+Modern zk-SNARKs go further, using pairings and commitments to compress "check a polynomial relation" even more.
+
+In the end, the verifier doesn't look at constraints one by one — only a very small amount of math.
+
+### The key intuition
+
+- **R1CS**: like a teacher grading problem by problem
+- **QAP**: like a teacher summarizing all problems into one overall grading rule, and only checking that rule
+
+---
+
+## What actually happens at the check points?
+
+If the witness is correct, at each check point:
+
+### At $t=1$
+
+$$
+A(1) \cdot B(1) - C(1) = 0
+$$
+
+This means: **constraint 1 is satisfied**.
+
+### At $t=2$
+
+$$
+A(2) \cdot B(2) - C(2) = 0
+$$
+
+This means: **constraint 2 is satisfied**.
+
+### At $t=3$
+
+$$
+A(3) \cdot B(3) - C(3) = 0
+$$
+
+This means: **constraint 3 is satisfied**.
+
+So if the expression is 0 at $t=1, 2, 3$, then:
+
+$$
+A(t) \cdot B(t) - C(t)
+$$
+
+must contain the factor:
+
+$$
+(t-1)(t-2)(t-3)
+$$
+
+i.e.:
+
+$$
+Z(t)
+$$
+
+That's the heart of QAP.
+
+---
+
+## Three sentences to remember QAP
+
+1. **Turn every column of R1CS numbers into a polynomial curve.**
+2. **Combine all the constraint errors into one total error polynomial.**
+3. **If the total error is zero at every check point, it must be divisible by $Z(t)$.**
+
+---
+
+## Why does the verifier only need to check very little?
+
+The important result here is the **Schwartz-Zippel Lemma**.
+
+Roughly:
+
+> If two different polynomials are evaluated at a random point, they are very unlikely to happen to agree.
+
+So the verifier doesn't need to expand and inspect the whole polynomial.
+Checking the relation at a single random point is enough — a bogus proof almost cannot sneak past.
+
+One way to think about it:
+
+> **A fake polynomial has a very hard time disguising itself as the real one under a random spot check.**
+
+---
+
+## The grand analogy
+
+- **Arithmetic circuit**: like a step-by-step problem diagram
+- **R1CS**: like turning each step into a checklist item
+- **QAP**: like compressing all checklist items into one overall rule
+- **zk-SNARK**: like using that one rule to quickly prove "I got everything right" without revealing any intermediate details
+
+---
+
+Next section: [Proof Generation and Verification](./proof-verification)

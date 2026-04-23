@@ -1,0 +1,106 @@
+---
+sidebar:
+  order: 2
+title: "R1CS 约束系统"
+---
+
+import { R1CSDemo, R1CSMatrixDemo } from '@site/src/components/Interactive';
+
+# 10.2 R1CS（Rank-1 Constraint System）
+
+## 交互式演示
+
+<R1CSDemo client:only="react" />
+
+## 从电路到约束
+
+R1CS 用矩阵形式表达电路的约束。对于每个约束，格式为：
+
+$$
+(\vec{a} \cdot \vec{s}) \times (\vec{b} \cdot \vec{s}) = (\vec{c} \cdot \vec{s})
+$$
+
+其中：
+- $\vec{s}$ 是 **witness 向量**，包含所有变量的值
+- $\vec{a}, \vec{b}, \vec{c}$ 是系数向量，定义了这个约束的结构
+- $\cdot$ 表示向量点积
+
+## 构造 witness 向量
+
+对于 $x^3 + x + 5 = y$，我们的 witness 向量包含：
+
+$$
+\vec{s} = [1, \; x, \; y, \; \text{sym}_1, \; \text{sym}_2]
+$$
+
+第一个元素固定为 1，用于引入常数项。
+
+:::tip 以 x = 3 为例
+$$
+\vec{s} = [1, \; 3, \; 35, \; 9, \; 27]
+$$
+
+因为：$\text{sym}_1 = 3^2 = 9$，$\text{sym}_2 = 9 \times 3 = 27$，$y = 27 + 3 + 5 = 35$
+:::
+
+## 手算 R1CS 矩阵
+
+试试自己动手构造 R1CS 矩阵：
+
+<R1CSMatrixDemo client:only="react" />
+
+**约束 1：$x \times x = \text{sym}_1$**
+
+| | 1 | x | y | sym₁ | sym₂ |
+|---|---|---|---|------|------|
+| **A** | 0 | 1 | 0 | 0 | 0 |
+| **B** | 0 | 1 | 0 | 0 | 0 |
+| **C** | 0 | 0 | 0 | 1 | 0 |
+
+验证：$(A \cdot s) \times (B \cdot s) = x \times x = x^2 = \text{sym}_1 = (C \cdot s)$ ✓
+
+**约束 2：$\text{sym}_1 \times x = \text{sym}_2$**
+
+| | 1 | x | y | sym₁ | sym₂ |
+|---|---|---|---|------|------|
+| **A** | 0 | 0 | 0 | 1 | 0 |
+| **B** | 0 | 1 | 0 | 0 | 0 |
+| **C** | 0 | 0 | 0 | 0 | 1 |
+
+验证：$(A \cdot s) \times (B \cdot s) = \text{sym}_1 \times x = x^3 = \text{sym}_2 = (C \cdot s)$ ✓
+
+**约束 3：$(\text{sym}_2 + x + 5) \times 1 = y$**
+
+这里加法被"折叠"进了左操作数，乘以常数 1：
+
+| | 1 | x | y | sym₁ | sym₂ |
+|---|---|---|---|------|------|
+| **A** | 5 | 1 | 0 | 0 | 1 |
+| **B** | 1 | 0 | 0 | 0 | 0 |
+| **C** | 0 | 0 | 1 | 0 | 0 |
+
+验证：$(5 \cdot 1 + 1 \cdot x + 1 \cdot \text{sym}_2) \times 1 = \text{sym}_2 + x + 5 = y = (C \cdot s)$ ✓
+
+## 完整的 A, B, C 矩阵
+
+$$
+A = \begin{bmatrix}
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 \\
+5 & 1 & 0 & 0 & 1
+\end{bmatrix}, \quad
+B = \begin{bmatrix}
+0 & 1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+1 & 0 & 0 & 0 & 0
+\end{bmatrix}, \quad
+C = \begin{bmatrix}
+0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 1 \\
+0 & 0 & 1 & 0 & 0
+\end{bmatrix}
+$$
+
+---
+
+下一节：[从 R1CS 到 QAP](./qap)

@@ -1,0 +1,187 @@
+---
+title: "Chapter 6: Schnorr Signature Algorithm"
+sidebar:
+  order: 6
+---
+
+import { SchnorrDemo } from '@site/src/components/Interactive';
+
+# Chapter 6: Schnorr Signature Algorithm
+
+## 🎮 Interactive Demo
+
+Before diving into the theory, experience the concise beauty of Schnorr signatures firsthand! Use the interactive tool below:
+
+<SchnorrDemo client:only="react" />
+
+---
+
+Schnorr signatures are concise and efficient digital signature schemes. They are simpler than ECDSA and support signature aggregation. Bitcoin's Taproot upgrade introduced Schnorr signatures.
+
+## 5.1 Schnorr vs ECDSA
+
+### Comparison Table
+
+| Feature | ECDSA | Schnorr |
+|------|-------|---------|
+| Signature Size | 64-72 bytes | 64 bytes |
+| Mathematical Complexity | More complex | Simpler |
+| Signature Aggregation | ❌ Not supported | ✅ Native support |
+| Batch Verification | ❌ Low efficiency | ✅ Efficient |
+| Multi-sig Efficiency | ❌ Multiple signatures | ✅ Aggregated into one |
+| Patent Issues | None | Expired (2008) |
+
+### Why did Bitcoin only start using it now?
+
+The Schnorr signature patent only expired in 2008, and Bitcoin was born in 2009. At that time, ECDSA was a more secure choice.
+
+## 5.2 Schnorr Signature Principles
+
+### System Parameters
+
+Same as ECDSA:
+- Elliptic curve parameters (a, b, p, n)
+- Base point G
+- Private key d, public key P = d × G
+
+### Signature Generation
+
+Experience this in the **"2. Signature Generation"** tab of the demo.
+
+1. Choose a random number $k$
+2. Calculate $R = k \times G$
+3. Calculate the challenge value $e = Hash(R || P || m)$
+4. Calculate $s = k + e \times d \pmod n$
+5. Return the signature $(R, s)$
+
+### 💡 Detailed Explanation: What is Hash(R || P || m)?
+
+The `||` symbol in this formula represents **Concatenation**.
+
+Imagine we are making a sandwich:
+1. **R (Random Commitment)**: Bread slice
+2. **P (Public Key)**: Ham
+3. **m (Message)**: Lettuce
+
+We need to press these three things tightly together and then put them into a blender (Hash function) to break them into an irreversible number (challenge value e).
+
+This is done to:
+- **Bind random number R**: Prevent replay attacks
+- **Bind public key P**: Prevent Rogue Key Attacks
+- **Bind message m**: Ensure the signature is only valid for this message
+
+### Signature Verification
+
+Experience this in the **"3. Signature Verification"** tab of the demo.
+
+1. Calculate the challenge value $e = \text{Hash}(R || P || m)$.
+2. Verify: $s \times G = R + e \times P$.
+
+### Mathematical Derivation of Verification
+
+We expand the verification formula:
+
+$$
+\begin{aligned}
+s \cdot G &= (k + e \cdot d) \cdot G \\
+          &= k \cdot G + e \cdot d \cdot G \\
+          &= R + e \cdot P
+\end{aligned}
+$$
+
+This is much more concise than the ECDSA verification formula.
+
+## 5.3 Small Value Example
+
+(Please refer to the interactive demo at the beginning of the article to observe the calculation process of R and s)
+
+## 5.4 Signature Aggregation - Schnorr's Killer Feature
+
+### Multi-signature Problem
+
+Traditional multi-sig: 3-of-3 multi-sig requires 3 independent signatures, which takes up a lot of space.
+
+### MuSig Protocol
+
+Schnorr allows aggregating multiple signatures into one! Experience this in the **"4. Signature Aggregation (MuSig)"** tab of the demo.
+
+**Simplified Aggregation Process:**
+
+1. **Aggregate Public Key**: $P_{agg} = P_1 + P_2 + P_3$
+2. **Aggregate Random Number**: $R_{agg} = R_1 + R_2 + R_3$
+3. **Calculate Challenge**: $e = Hash(R_{agg} || P_{agg} || m)$
+4. **Partial Signature**: Each signer calculates $s_i = k_i + e \times d_i$
+5. **Aggregate Signature**: $s_{agg} = \sum s_i$
+
+The final signature $(R_{agg}, s_{agg})$ looks like a normal single signature! Verifiers **cannot distinguish** whether this is a single signature or a multi-signature.
+
+## 5.5 Batch Verification
+
+To verify 1000 signatures, do you need 1000 independent verifications?
+
+Schnorr supports batch verification:
+$$
+(s_1 + s_2 + ... + s_n) \times G = \sum R_i + \sum (e_i \times P_i)
+$$
+
+Efficiency increases by about 2-3 times!
+
+## 5.6 Schnorr in Bitcoin Taproot
+
+Bitcoin uses Schnorr signatures on the secp256k1 curve (BIP-340).
+
+**Advantages of Taproot:**
+- **Privacy**: Multi-sig looks the same as single-sig, making it indistinguishable on-chain.
+- **Efficiency**: Signatures are smaller and verification is faster.
+- **Flexibility**: Supports hiding complex scripts (MAST).
+
+## 5.7 Why doesn't Ethereum 2.0 use Schnorr?
+
+Since Schnorr also supports aggregation, why did Ethereum 2.0 (Consensus Layer) firmly choose the more complex BLS signature?
+
+The core reason is: **Non-interactive Aggregation**.
+
+### Interactive vs Non-interactive
+
+| Feature | Schnorr (MuSig) | BLS |
+|---|---|---|
+| **Aggregation Process** | **Requires Interaction (Interactive)** | **Non-interactive** |
+| **Communication Rounds** | At least 2 rounds (all signers must be online and communicate with each other) | 0 rounds (signers only need to send the signature to the collector) |
+| **Applicable Scenarios** | Small-scale multi-sig (e.g., 3-of-3 wallets) | Large-scale consensus (e.g., 300,000 validators) |
+| **Signature Length** | 64 bytes | 48 bytes (even smaller!) |
+| **Verification Speed** | Extremely fast | Slower (but compensated by aggregation at scale) |
+
+**Scenario Simulation:**
+
+*   **Schnorr Scenario**: To aggregate signatures from 1000 validators. They must all be online at the same time, exchange random numbers R first, calculate the aggregate R, and then sign separately. If someone goes offline in the middle, the whole process might have to start over. This is unrealistic for a globally distributed blockchain network.
+*   **BLS Scenario**: 1000 validators each sign at home and send it to the "block proposer". The proposer aggregates as many as they receive, without any communication between validators. This is perfect for a large-scale network like Ethereum.
+
+## 5.8 Security Considerations
+
+### Importance of Random Number k
+
+Like ECDSA, k must be truly random and not repeated, otherwise the private key will be leaked!
+
+### Rogue Key Attack
+
+In multi-sig scenarios, malicious participants might choose special public keys to cancel out others' contributions.
+The **MuSig2 protocol** solves this problem through an additional commitment round.
+
+## Chapter Summary
+
+| Feature | Schnorr Advantage |
+|------|-------------|
+| **Simplicity** | Linear equation, simple verification |
+| **Aggregation** | Multiple signatures can be merged into one |
+| **Batch Verification** | Efficiency increases by 2-3 times |
+| **Privacy** | Multi-sig and single-sig are indistinguishable |
+
+## Thinking Questions
+
+1. Why can Schnorr signatures be aggregated while ECDSA cannot?
+2. How does the MuSig protocol prevent Rogue Key attacks?
+3. How does the Taproot upgrade use Schnorr to improve privacy?
+
+---
+
+Next Chapter: [EdDSA/Ed25519 Signature](/docs/cryptography/eddsa)

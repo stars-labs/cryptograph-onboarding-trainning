@@ -1,0 +1,9 @@
+{
+  "label": "ZKP Deep Dive",
+  "position": 10,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "The complete pipeline from arithmetic circuits to zero-knowledge proofs: Circuits → R1CS → QAP → Proof Generation & Verification"
+  }
+}

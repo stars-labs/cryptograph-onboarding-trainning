@@ -1,0 +1,384 @@
+---
+title: "Chapter 3: Introduction to Elliptic Curves"
+sidebar:
+  order: 3
+---
+
+import { EllipticCurveDemo, ECIESDemo } from '@site/src/components/Interactive';
+
+# Chapter 3: Introduction to Elliptic Curves
+
+Elliptic curves are the mathematical foundation of ECDSA. This chapter uses visualizations and small-value examples to help you intuitively understand elliptic curve cryptography.
+
+<EllipticCurveDemo client:only="react" />
+
+## 2.1 Elliptic Curve Equation
+
+### Standard Form (Weierstrass Equation)
+
+```
+y² = x³ + ax + b
+```
+
+Where `a` and `b` are curve parameters that must satisfy $4a³ + 27b² ≠ 0$ (to ensure the curve is smooth).
+
+### Interactive Visualization
+
+Use the "Real Field Curve" tab above and drag the sliders to observe how parameter changes affect the curve's shape.
+
+:::tip Try these values
+- `a = -3, b = 5`: A relatively rounded curve
+- `a = 0, b = 7`: The shape of the secp256k1 curve used by Bitcoin
+- `a = -4, b = 0`: y² = x³ - 4x
+:::
+
+### Key Characteristics of the Curve
+
+1. **Symmetric about the X-axis**: If (x, y) is on the curve, then (x, -y) is also on the curve
+2. **Point at Infinity O**: Acts as the identity element (explained later)
+3. **Vertical Lines**: Intersect the curve at most at 2 points
+
+## 2.2 Elliptic Curves over Finite Fields
+
+### Why Do We Need Finite Fields?
+
+Elliptic curves over real numbers are continuous and cannot be used directly for cryptography. We need **discretization** using modular arithmetic.
+
+```
+y² ≡ x³ + ax + b (mod p)
+```
+
+Where `p` is a large prime number.
+
+### Small-Value Example
+
+Let's use a small prime `p = 17` to understand:
+
+Curve Equation: `y² ≡ x³ + 2x + 2 (mod 17)`
+
+| x | x³ + 2x + 2 | mod 17 | √ (mod 17) | Points |
+|---|-------------|--------|------------|-----|
+| 0 | 2 | 2 | None | - |
+| 1 | 5 | 5 | None | - |
+| 2 | 14 | 14 | None | - |
+| 3 | 35 | 1 | ±1 | (3, 1), (3, 16) |
+| 4 | 74 | 6 | None | - |
+| 5 | 137 | 1 | ±1 | (5, 1), (5, 16) |
+| 6 | 230 | 9 | ±3 | (6, 3), (6, 14) |
+| 7 | 359 | 2 | None | - |
+
+### Finite Field Elliptic Curve Visualization
+
+Use the "Finite Field Curve" tab above for interactive exploration.
+
+:::info Observations
+- The point distribution looks "random"
+- It is still symmetric about a "horizontal line" (near y = p/2)
+- The number of points is finite
+:::
+
+## 2.3 Point Addition
+
+A special "addition" operation is defined on elliptic curves.
+
+### Geometric Definition (Real Field)
+
+Given two points P and Q, how do we calculate P + Q?
+
+1. Draw a line through P and Q
+2. This line intersects the curve at a third point R
+3. **P + Q = the reflection of R across the X-axis**
+
+Use the "Point Addition" tab above for interactive calculations.
+
+### Algebraic Formulas
+
+For P = (x₁, y₁) and Q = (x₂, y₂):
+
+**When P ≠ Q:**
+
+```
+λ = (y₂ - y₁) / (x₂ - x₁)
+x₃ = λ² - x₁ - x₂
+y₃ = λ(x₁ - x₃) - y₁
+```
+
+### Manual Example
+
+Curve: `y² = x³ - 4x`
+
+P = (-2, 0), Q = (2, 0)
+
+Since y₁ = y₂ = 0, the line is horizontal... this is a special case where P + Q = O (the point at infinity).
+
+## 2.4 Point Addition over Finite Fields
+
+### Example: p = 17, Curve y² ≡ x³ + 2x + 2 (mod 17)
+
+Known points:
+- P = (5, 1): Verify 1² = 1, 5³ + 10 + 2 = 137 ≡ 1 (mod 17) ✓
+- Q = (6, 3): Verify 3² = 9, 6³ + 12 + 2 = 230 ≡ 9 (mod 17) ✓
+
+**Calculate P + Q:**
+
+Step 1: Calculate the slope λ
+
+```
+λ = (3 - 1) / (6 - 5) = 2 / 1 = 2
+```
+
+Step 2: Calculate x₃
+
+```
+x₃ = 2² - 5 - 6 = 4 - 11 = -7 ≡ 10 (mod 17)
+```
+
+Step 3: Calculate y₃
+
+```
+y₃ = 2(5 - 10) - 1 = -10 - 1 = -11 ≡ 6 (mod 17)
+```
+
+**Result: P + Q = (10, 6)**
+
+Verification: 6² = 36 ≡ 2, 10³ + 20 + 2 = 1022 ≡ 2 (mod 17) ✓
+
+## 2.5 Point Doubling
+
+When P = Q, we need to calculate P + P = 2P.
+
+### Geometric Definition
+
+Draw a **tangent line** to the curve at point P. It intersects the curve at another point R. 2P is the reflection of R.
+
+### Algebraic Formulas
+
+```
+λ = (3x₁² + a) / (2y₁)
+x₃ = λ² - 2x₁
+y₃ = λ(x₁ - x₃) - y₁
+```
+
+### Manual Example
+
+Continuing with: p = 17, Curve y² ≡ x³ + 2x + 2 (mod 17), P = (5, 1)
+
+**Calculate 2P:**
+
+Step 1: Calculate the slope
+
+```
+λ = (3 × 25 + 2) / (2 × 1) = 77 / 2
+```
+
+We need to calculate 77 mod 17 = 9, and the modular inverse of 2.
+
+2⁻¹ mod 17 = 9 (since 2 × 9 = 18 ≡ 1 mod 17)
+
+```
+λ = 9 × 9 = 81 ≡ 13 (mod 17)
+```
+
+Step 2: Calculate x₃
+
+```
+x₃ = 13² - 10 = 169 - 10 = 159 ≡ 6 (mod 17)
+```
+
+Step 3: Calculate y₃
+
+```
+y₃ = 13(5 - 6) - 1 = -13 - 1 = -14 ≡ 3 (mod 17)
+```
+
+**Result: 2P = (6, 3)**
+
+Interestingly, this is exactly our previous point Q!
+
+## 2.6 Scalar Multiplication
+
+**Core Operation**: k × P = P + P + ... + P (k times)
+
+This is the heart of ECDSA, multiplying a base point G by a private key (scalar k) to get the public key.
+
+### Fast Calculation: Double-and-Add
+
+Performing k additions directly is too slow. We use binary expansion:
+
+```
+Example: Calculate 21P
+
+Binary of 21 = 10101
+
+21P = 16P + 4P + P
+    = 2(8P) + 2(2P) + P
+    = 2(2(4P)) + 2(2P) + P
+    = 2(2(2(2P))) + 2(2P) + P
+
+Only 4 doublings + 2 additions are needed, instead of 20 additions!
+```
+
+### Python Implementation
+
+```python
+def point_add(P, Q, a, p):
+    """Elliptic curve point addition"""
+    if P is None:
+        return Q
+    if Q is None:
+        return P
+    
+    x1, y1 = P
+    x2, y2 = Q
+    
+    if x1 == x2 and (y1 + y2) % p == 0:
+        return None  # P + (-P) = O
+    
+    if P == Q:
+        # Point doubling
+        lam = (3 * x1 * x1 + a) * pow(2 * y1, -1, p) % p
+    else:
+        # Point addition
+        lam = (y2 - y1) * pow(x2 - x1, -1, p) % p
+    
+    x3 = (lam * lam - x1 - x2) % p
+    y3 = (lam * (x1 - x3) - y1) % p
+    
+    return (x3, y3)
+
+def scalar_mult(k, P, a, p):
+    """Scalar multiplication: k × P"""
+    result = None  # Point at infinity
+    addend = P
+    
+    while k:
+        if k & 1:
+            result = point_add(result, addend, a, p)
+        addend = point_add(addend, addend, a, p)
+        k >>= 1
+    
+    return result
+
+# Test
+p = 17
+a = 2
+P = (5, 1)
+
+print(f"P = {P}")
+print(f"2P = {scalar_mult(2, P, a, p)}")
+print(f"3P = {scalar_mult(3, P, a, p)}")
+print(f"21P = {scalar_mult(21, P, a, p)}")
+```
+
+## 2.7 Elliptic Curve Encryption and Decryption (Simplified ECIES)
+
+While RSA has its encryption scheme, elliptic curves have **ECIES**.  
+Here is a "toy version" using small values to help you understand the full process (real ECIES adds hashing and symmetric encryption).
+
+### A Simple Analogy
+
+Think of an elliptic curve as a "maze that only mathematicians can navigate":
+
+- **B** is the public starting point (everyone knows it)
+- **d** is your secret number of steps (private key)
+- **Q = d×B** is your destination after walking (public key)
+
+**Encryption** is like sending a letter:
+- The sender picks a random new number of steps **k**
+- They walk to **R = k×B** and treat R as the "return address"
+- Simultaneously, they calculate a shared point **S = k×Q** (only you and the sender can calculate this)
+- They use the x-coordinate of S as a "key" to lock the plaintext
+
+**Decryption** is like using your key to open the lock:
+- You use your private key **d** to calculate **S' = d×R**
+- S' and S are the same point
+- Therefore, you can use the same key to restore the plaintext
+
+In short: **The sender and receiver can both calculate the same secret point, but an onlooker cannot.**
+
+<ECIESDemo client:only="react" />
+
+## 2.8 One-Way Trapdoor Function
+
+### Core Security
+
+Given:
+- Base point G
+- Public key Q = k × G
+
+**Problem**: Known G and Q, can you find k?
+
+This is the **Elliptic Curve Discrete Logarithm Problem (ECDLP)**.
+
+### Why Is It Hard?
+
+- No "division": You cannot calculate Q ÷ G
+- No "path": You don't know how many additions were performed from G to Q
+
+:::danger Source of Security
+There is currently no known polynomial-time algorithm to solve the ECDLP.
+The best attack (Pollard's rho) requires approximately √n operations.
+
+For secp256k1 (n ≈ 2²⁵⁶), this requires about 2¹²⁸ operations, which is infeasible.
+:::
+
+### A Visual Metaphor
+
+Imagine a giant clock (with, say, 2²⁵⁶ ticks):
+- You are at some position G
+- You walk k steps clockwise to reach Q
+- Others see G and Q, but they don't know how many steps you took
+
+## 2.9 secp256k1 Curve Parameters
+
+The standard curve used by Bitcoin and Ethereum:
+
+```
+y² = x³ + 7 (mod p)
+```
+
+### Parameter Values
+
+| Parameter | Value | Description |
+|------|-----|------|
+| a | 0 | Curve parameter |
+| b | 7 | Curve parameter |
+| p | 2²⁵⁶ - 2³² - 977 | Finite field size |
+| n | ~ 2²⁵⁶ | Curve order (number of points) |
+| Gₓ | 0x79BE667E... | Base point x-coordinate |
+| Gᵧ | 0x483ADA77... | Base point y-coordinate |
+
+```python
+# Full secp256k1 parameters
+p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+a = 0
+b = 7
+Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+Gy = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
+```
+
+## Chapter Summary
+
+| Concept | Key Points |
+|------|------|
+| Elliptic Curve | y² = x³ + ax + b |
+| Finite Field | Discretization using modular arithmetic |
+| Point Addition | Geometric: Reflection of the intersection of a line through two points |
+| Scalar Multiplication | k × P, calculated efficiently using double-and-add |
+| ECDLP | Impossible to reverse k from Q and G |
+| ECIES | Classic scheme for elliptic curve encryption and decryption |
+
+## Exercises
+
+### Manual Calculation Exercise
+
+Curve: `y² ≡ x³ + 2x + 2 (mod 17)`
+
+1. Verify that (3, 1) is on the curve
+2. Calculate (3, 1) + (5, 1)
+3. Calculate 3 × (5, 1)
+
+---
+
+Next Chapter: [ECDSA Signature Algorithm](/docs/cryptography/ecdsa)

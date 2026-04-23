@@ -1,0 +1,67 @@
+---
+sidebar:
+  order: 5
+title: "思考题与练习"
+---
+
+import { ZKPExerciseDemo } from '@site/src/components/Interactive';
+
+# 10.5 思考题 & 练习
+
+## 交互式练习
+
+动手试试构造 R1CS 约束系统，系统会帮你检查每一步！
+
+<ZKPExerciseDemo client:only="react" />
+
+---
+
+## 思考题
+
+1. 为什么 R1CS 只需要关注乘法门，而加法门是"免费"的？
+   > 提示：想想 R1CS 约束的形式 $(A \cdot s) \times (B \cdot s) = (C \cdot s)$——加法可以怎样被吸收？
+
+2. 如果一个电路有 $n$ 个乘法门，R1CS 有多少个约束？QAP 的消没多项式 $Z(t)$ 的次数是多少？
+
+3. 为什么 Verifier 只需要检查一个随机点就能确信多项式等式成立？
+   > 提示：Schwartz-Zippel 引理说了什么？
+
+4. 如果可信设置的 $\tau$ 泄露了，攻击者可以做什么？他能获取其他人的 witness 吗？
+
+## 手算练习
+
+对于 $x^2 + x + 1 = y$：
+
+1. 将计算拍平为门操作，写出中间变量
+2. 构造 witness 向量（以 $x = 4$ 为例）
+3. 写出 R1CS 的 A, B, C 矩阵
+4. 验证所有约束是否满足
+
+<details>
+<summary>参考答案</summary>
+
+**拍平：**
+- $\text{sym}_1 = x \times x$
+- $y = \text{sym}_1 + x + 1$
+
+**Witness：** $\vec{s} = [1, x, y, \text{sym}_1] = [1, 4, 21, 16]$
+
+**R1CS（2 个约束）：**
+
+约束 1：$x \times x = \text{sym}_1$
+
+$$A_1 = [0,1,0,0], \; B_1 = [0,1,0,0], \; C_1 = [0,0,0,1]$$
+
+约束 2：$(\text{sym}_1 + x + 1) \times 1 = y$
+
+$$A_2 = [1,1,0,1], \; B_2 = [1,0,0,0], \; C_2 = [0,0,1,0]$$
+
+**验证（$x = 4$）：**
+- 约束 1：$4 \times 4 = 16$ ✓
+- 约束 2：$(16 + 4 + 1) \times 1 = 21 = y$ ✓
+
+</details>
+
+---
+
+下一章：[Merkle 树与 SPV 验证](/docs/cryptography/merkle)
